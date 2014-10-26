@@ -7,7 +7,6 @@ graph_file = 'computed/graph.bin'
 f = snap.TFIn(graph_file)
 graph = snap.TNEANet.Load(f)
 
-#degdist = [Counter() for i in range(2)]
 degdist = {
     'user': Counter(),
     'business': Counter()
