@@ -1,4 +1,5 @@
 *.pyc
 *.swp
 *.bin
+dataset/*
 __pycache__
