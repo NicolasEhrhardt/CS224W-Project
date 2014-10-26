@@ -2,10 +2,10 @@ from generator import generateYelpReview
 import snap
 
 review_file = 'dataset/yelp_academic_dataset_review.json'
-graph_file = 'data/graph.bin'
+graph_file = 'computed/graph.bin'
 
 graph = snap.TNEANet.New()
-#graph.AddIntAttrN('type')
+graph.AddStrAttrN('type')
 graph.AddStrAttrE('date')
 graph.Reserve(300000, 1200000)
 
@@ -17,7 +17,7 @@ for user_encid, business_encid, date in generateYelpReview(review_file):
     user_node_id = -1
     if user_encid not in user_index_encid:
         user_node_id = graph.AddNode()
-        graph.AddIntAttrDatN(user_node_id, 0, 'type')
+        graph.AddStrAttrDatN(user_node_id, 'user', 'type')
         user_index_encid[user_encid] = user_node_id
     else:
         user_node_id = user_index_encid[user_encid]
@@ -25,7 +25,7 @@ for user_encid, business_encid, date in generateYelpReview(review_file):
     business_node_id = -1
     if business_encid not in business_index_encid:
         business_node_id = graph.AddNode()
-        graph.AddIntAttrDatN(business_node_id, 1, 'type')
+        graph.AddStrAttrDatN(business_node_id, 'business', 'type')
         business_index_encid[business_encid] = business_node_id
     else:
         business_node_id = business_index_encid[business_encid]
@@ -33,7 +33,7 @@ for user_encid, business_encid, date in generateYelpReview(review_file):
     edge = graph.AddEdge(user_node_id, business_node_id)
     graph.AddStrAttrDatE(edge, date, 'date')
 
-print('Storing graph')
+print('> Storing graph')
 f = snap.TFOut(graph_file)
 graph.Save(f)
 

@@ -2,19 +2,24 @@ from collections import Counter
 from matplotlib import pyplot as plt
 import snap
 
-graph_file = 'data/graph.bin'
+graph_file = 'computed/graph.bin'
 
 f = snap.TFIn(graph_file)
 graph = snap.TNEANet.Load(f)
 
-degdist = [Counter() for i in range(2)]
+#degdist = [Counter() for i in range(2)]
+degdist = {
+    'user': Counter(),
+    'business': Counter()
+}
+
 for n in graph.Nodes():
     node_id = n.GetId()
-    node_type = graph.GetIntAttrDatN(node_id, "type")
+    node_type = graph.GetStrAttrDatN(node_id, "type")
     degdist[node_type].update([n.GetDeg()])
 
-
-for d in degdist:
+print("> Displaying dist")
+for node_type, d in degdist.iteritems():
     plt.plot(d.keys(), d.values())
 
 plt.legend(['User reviews', 'Business reviews'])
