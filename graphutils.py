@@ -1,0 +1,86 @@
+import snap
+import itertools
+
+def GetInOutEdges(self):
+    """Return ids of In or Out Nodes"""
+    return itertools.chain(self.GetOutEdges(), self.GetInEdges())
+
+def delete_node_type(graph, attr='type', value='business'):
+    """Delete all nodes of given type"""
+    for node in graph.Nodes():
+        node_id = node.GetId()
+        if graph.GetStrAttrDatN(node_id, attr) == value:
+            graph.DelNode(node_id)
+
+def keep_edge_type(graph, attr='date', value=lambda x: x < '2010-01-01'):
+    """Returns new graph with edges matching value boolean lambda function"""
+    ng = copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=[])
+    ng.AddStrAttrE(attr)
+    for edge in graph.Edges():
+        edge_id = edge.GetId()
+        if value(graph.GetStrAttrDatE(edge_id, attr)):
+            nedge = graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
+            ng.AddStrAttrDatE(nedge, graph.GetStrAttrDatE(edge_id, attr), attr)
+    return ng
+
+def copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=['date']):
+    """Returns a copy of the graph (~5s copy)"""
+    tmpfile = '.copy.bin'
+
+    # Saving to tmp file
+    FOut = snap.TFOut(tmpfile)
+    graph.Save(FOut)
+    FOut.Flush()
+
+    # Loading to new graph
+    FIn = snap.TFIn(tmpfile)
+    graphtype = type(graph)
+    new_graph = graphtype.New()
+    new_graph = new_graph.Load(FIn)
+   
+    # Adding attributes if necessary
+    # if graphtype.__name__ != 'PNEANet':
+    #     for node in snap.Nodes(graph):
+    #         node_id = node.GetId()
+    #         for node_str_attr in node_str_attrs:
+    #             new_graph.AddStrAttrDatN(node_id, graph.GetStrAttrDatN(node_id, node_str_attr), node_str_attr)
+
+    #     for edge in snap.Edges(graph):
+    #         edge_id = edge.GetId()
+    #         for edge_str_attr in edge_str_attrs:
+    #             new_graph.AddStrAttrDatE(edge_id, graph.GetStrAttrDatE(edge_id, edge_str_attr), edge_str_attr)
+
+    return new_graph
+
+# ~ Ignore Below ~
+
+def failing_keep_edge_type(graph, attr='date', value=lambda x: x < '2010-01-01' ):
+    for edge in snap.Edges(graph):
+        edge_id = edge.GetId()
+        if value(graph.GetStrAttrDatE(edge_id, attr)):
+            graph.DelAttrDatE(edge_id, attr)
+            # this thing under does not work...?!
+            graph.DelEdge(edge.GetSrcNId(), edge.GetDstNId())
+
+
+def inefficient_copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=['date']):
+    graphtype = type(graph)
+    new_graph = graphtype.New()
+    new_graph.Reserve(graph.GetNodes(), graph.GetEdges())
+   
+    for node in graph.Nodes():
+        node_id = node.GetId()
+        new_graph.AddNode(node_id)
+        if graphtype.__name__ == 'PNEANet':
+            for node_str_attr in node_str_attrs:
+                new_graph.AddStrAttrDatN(node_id, graph.GetStrAttrDatN(node_id, node_str_attr), node_str_attr)
+
+    for edge in graph.Edges():
+        edge_id = edge.GetId()
+        new_edge_id = new_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
+        #new_edge_id = new_edge.GetId()
+        if graphtype.__name__ == 'PNEANet':
+            for edge_str_attr in edge_str_attrs:
+                new_graph.AddStrAttrDatE(new_edge_id, graph.GetStrAttrDatE(edge_id, edge_str_attr), edge_str_attr)
+
+    return new_graph
