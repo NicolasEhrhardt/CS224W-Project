@@ -1,5 +1,5 @@
 import sys
 
-def tempPrint(s):
+def temprint(s):
   sys.stdout.write(s + "\r")
   sys.stdout.flush()
