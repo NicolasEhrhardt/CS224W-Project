@@ -1,5 +1,6 @@
 import snap
 import itertools
+from datetime import datetime
 
 def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
@@ -12,8 +13,28 @@ def delete_node_type(graph, attr='type', value='business'):
         if graph.GetStrAttrDatN(node_id, attr) == value:
             graph.DelNode(node_id)
 
+def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010-01-01'):
+    """ adds to partial_graph, nodes and edges from full_graph if they fulfill the criterion """
+
+    for node in full_graph.Nodes():
+        nodeId = node.GetId()
+        date = full_graph.GetStrAttrDatN(nodeId,'date')
+        if criterion(date) and  not partial_graph.IsNode(nodeId):
+            new_node = partial_graph.AddNode(nodeId)
+            node_type = full_graph.GetStrAttrDatN(nodeId,'type')
+            partial_graph.AddStrAttrDatN(new_node,node_type,'type')
+            partial_graph.AddStrAttrDatN(new_node,date,'date')
+
+    for edge in full_graph.Edges():
+        date = full_graph.GetStrAttrDatE(edge.GetId(),'date')        
+        srcId = edge.GetSrcNId()
+        dstId = edge.GetDstNId()
+        if criterion(date) and not partial_graph.IsEdge(srcId,dstId):
+            new_edge = partial_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
+            partial_graph.AddStrAttrDatE(new_edge,date,'date')
+
 def keep_edge_type(graph, attr='date', value=lambda x: x < '2010-01-01'):
-    """Returns new graph with edges matching value boolean lambda function"""
+    """Returns new graph with edges and nodes matching value boolean lambda function"""
     ng = copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=[])
     ng.AddStrAttrE(attr)
     for edge in graph.Edges():
