@@ -1,6 +1,6 @@
 import snap
 import itertools
-from datetime import datetime
+import constants as cst
 
 def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
@@ -19,7 +19,7 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
     for node in full_graph.Nodes():
         nodeId = node.GetId()
         date = full_graph.GetStrAttrDatN(nodeId,'date')
-        if criterion(date) and  not partial_graph.IsNode(nodeId):
+        if criterion(date) and not partial_graph.IsNode(nodeId):
             new_node = partial_graph.AddNode(nodeId)
             node_type = full_graph.GetStrAttrDatN(nodeId,'type')
             partial_graph.AddStrAttrDatN(new_node,node_type,'type')
@@ -33,18 +33,16 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
             new_edge = partial_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
             partial_graph.AddStrAttrDatE(new_edge,date,'date')
 
-def keep_edge_type(graph, attr='date', value=lambda x: x < '2010-01-01'):
+def keep_edge_type(graph, criterion=lambda x: x < '2010-01-01'):
     """Returns new graph with edges and nodes matching value boolean lambda function"""
-    ng = copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=[])
-    ng.AddStrAttrE(attr)
-    for edge in graph.Edges():
-        edge_id = edge.GetId()
-        if value(graph.GetStrAttrDatE(edge_id, attr)):
-            nedge = graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
-            ng.AddStrAttrDatE(nedge, graph.GetStrAttrDatE(edge_id, attr), attr)
+    ng = snap.TNEANet.New()
+    ng.AddStrAttrN(cst.ATTR_NODE_TYPE)
+    ng.AddStrAttrE(cst.ATTR_EDGE_REVIEW_DATE)
+    add_nodes_and_edges(graph, ng, criterion)
+    
     return ng
 
-def copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=['date']):
+def copy_graph(graph):
     """Returns a copy of the graph (~5s copy)"""
     tmpfile = '.copy.bin'
 
@@ -58,19 +56,7 @@ def copy_graph(graph, node_str_attrs=['type'], edge_str_attrs=['date']):
     graphtype = type(graph)
     new_graph = graphtype.New()
     new_graph = new_graph.Load(FIn)
-   
-    # Adding attributes if necessary
-    # if graphtype.__name__ != 'PNEANet':
-    #     for node in snap.Nodes(graph):
-    #         node_id = node.GetId()
-    #         for node_str_attr in node_str_attrs:
-    #             new_graph.AddStrAttrDatN(node_id, graph.GetStrAttrDatN(node_id, node_str_attr), node_str_attr)
-
-    #     for edge in snap.Edges(graph):
-    #         edge_id = edge.GetId()
-    #         for edge_str_attr in edge_str_attrs:
-    #             new_graph.AddStrAttrDatE(edge_id, graph.GetStrAttrDatE(edge_id, edge_str_attr), edge_str_attr)
-
+    
     return new_graph
 
 # ~ Ignore Below ~

@@ -1,6 +1,6 @@
 from graphutils import copy_graph, delete_node_type, GetInOutEdges
 import snap
-from utils.disp import temprint
+from utils.disp import tempPrint
 
 def projection(graph, attr='type', on_attr='user', using_attr='business'):
     proj_graph = copy_graph(graph)
@@ -14,7 +14,7 @@ def projection(graph, attr='type', on_attr='user', using_attr='business'):
         if node_type == on_attr:
             nodeVec = snap.TIntV()
             snap.GetNodesAtHop(graph, node_id, 2, nodeVec, False)
-            temprint('%d / %d' % (node_id, nbnodes))
+            tempPrint('%d / %d' % (node_id, nbnodes))
 
             for next_neighbor_id in nodeVec:
                 if proj_graph.GetStrAttrDatN(next_neighbor_id, attr) == on_attr and not proj_graph.IsEdge(node_id, next_neighbor_id): 

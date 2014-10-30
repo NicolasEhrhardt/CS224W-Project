@@ -7,10 +7,10 @@ graph_file = 'computed/graph.bin'
 f = snap.TFIn(graph_file)
 graph = snap.TNEANet.Load(f)
 
-print('> Projection on users')
-user_projection = projection(graph, on_attr='user', using_attr='business')
-print('%d Nodes left' % user_projection.GetNodes())
-print('%f Clusering coef' % snap.GetClustCf(user_projection))
+# print('> Projection on users')
+# user_projection = projection(graph, on_attr='user', using_attr='business')
+# print('%d Nodes left' % user_projection.GetNodes())
+# print('%f Clusering coef' % snap.GetClustCf(user_projection))
 
 # print('> Projection on businesses')
 # business_projection = projection(graph, on_attr='business', using_attr='user')
