@@ -17,3 +17,12 @@ def generateYelpUser(filename):
         user_id = user['user_id']
         date = user['yelping_since']
         yield user_id, date
+
+def generateYelpBusiness(filename):
+    # extracting tokens
+    for line in data.generateLine(filename):
+        business = json.loads(line)
+        business_id = business['business_id']
+        lng, lat = business['longitude'], business['latitude']
+        stars = business['stars']
+        yield business_id, lng, lat, stars
