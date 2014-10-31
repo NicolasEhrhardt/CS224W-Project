@@ -17,6 +17,7 @@ def degree_dist(graph):
     for node_type, d in degdist.iteritems():
         plt.plot(d.keys(), d.values())
 
+
     plt.legend(['User reviews', 'Business reviews'])
     plt.xscale('log')
     plt.xlabel('log(degree)')
@@ -47,17 +48,26 @@ def raw_stats(graph):
         year = graph.GetStrAttrDatE(edge.GetId(), 'date')[0:4]
         reviewcounts.update([year])
 
+    t = True
     for node in graph.Nodes():
         year = graph.GetStrAttrDatN(node.GetId(), 'date')[0:4]
-        type = graph.GetStrAttrDatN(node.GetId(), 'date')[0:4]
-        if type == 'user':
+        tipe = graph.GetStrAttrDatN(node.GetId(), 'type')
+        if tipe == 'user':
             usercounts.update([year])
         else:
+            if year == '' and t:
+                print node.GetId()
+                t ^= True
+
             businesscounts.update([year])
 
-    plt.plot([str(y) for y in usercounts.keys()], usercounts.values(), label='User counts')
-    plt.plot([str(y) for y in businesscounts.keys()], businesscounts.values(), label='Business counts')
-    plt.plot([str(y) for y in reviewcounts.keys()], reviewcounts.values(), label='Review counts')
+    usery, userc = zip(*sorted(usercounts.items()))
+    businessy, businessc = zip(*sorted(businesscounts.items()))
+    reviewy, reviewc = zip(*sorted(reviewcounts.items()))
+
+    plt.plot(usery, userc, label='User counts')
+    plt.plot(businessy, businessc, label='Business counts')
+    plt.plot(reviewy, reviewc, label='Review counts')
     plt.legend()
     plt.show()
 

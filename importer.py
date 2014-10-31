@@ -26,6 +26,7 @@ print('> Creating index')
 dates = dict()
 user_index_encid = dict()
 business_index_encid = dict()
+business_date = dict()
 
 print('>> Creating user nodes')
 for user_encid, date in generateYelpUser(user_file):
@@ -46,10 +47,13 @@ for business_encid, lng, lat, stars in generateYelpBusiness(business_file):
     business_index_encid[business_encid] = business_node_id
 
     # add time when user joined
-    graph.AddStrAttrDatN(user_node_id, cst.DEFAULT_EARLY_DATE, cst.ATTR_NODE_CREATED_DATE)
+    graph.AddStrAttrDatN(business_node_id, cst.DEFAULT_LATE_DATE, cst.ATTR_NODE_CREATED_DATE)
 
 print('>> Creating review edges')
 for review_encid, user_encid, business_encid, date in generateYelpReview(review_file):
+    if date == '':
+        print 'reviewid: %s has no date' % review_encid
+
     user_node_id = user_index_encid[user_encid]
     business_node_id = business_index_encid[business_encid]
 
@@ -60,7 +64,7 @@ for review_encid, user_encid, business_encid, date in generateYelpReview(review_
     # update opening_date if review creation precedes current estimate
     old_date = graph.GetStrAttrDatN(business_node_id, cst.ATTR_NODE_CREATED_DATE)
     if date < old_date:
-        graph.AddStrAttrDatN(business_node_id,date,cst.ATTR_NODE_CREATED_DATE)
+        graph.AddStrAttrDatN(business_node_id, date, cst.ATTR_NODE_CREATED_DATE)
 
 print('> Storing graph')
 f = TFOut(graph_file)
