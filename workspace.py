@@ -1,5 +1,5 @@
 import snap
-from graphutils import delete_node_type, keep_edge_type, copy_graph
+from graphutils import delete_node_type, get_subgraph_by_date, copy_graph
 from projection import projection
 
 graph_file = 'computed/graph.bin'

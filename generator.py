@@ -5,10 +5,11 @@ def generateYelpReview(filename):
     # extracting tokens
     for line in data.generateLine(filename):
         review = json.loads(line)
+        review_id = review['review_id']
         user_id = review['user_id']
         business_id = review['business_id']
         date = review['date']
-        yield user_id, business_id, date
+        yield review_id, user_id, business_id, date
 
 def generateYelpUser(filename):
     # extracting tokens

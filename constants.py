@@ -1,4 +1,5 @@
 # Node attributes
+ATTR_NODE_ID = 'id'
 ATTR_NODE_TYPE = 'type'
 ATTR_NODE_CREATED_DATE = 'date'
 
@@ -10,6 +11,7 @@ ATTR_NODE_USER_TYPE = 'user'
 DEFAULT_EARLY_DATE = '2000-01-01'
 
 # Edge attributes
+ATTR_EDGE_ID = 'id'
 ATTR_EDGE_REVIEW_DATE = 'date'
 
 
