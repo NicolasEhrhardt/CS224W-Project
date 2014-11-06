@@ -18,22 +18,32 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
 
     for node in full_graph.Nodes():
         nodeId = node.GetId()
-        date = full_graph.GetStrAttrDatN(nodeId,'date')
+        date = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_CREATED_DATE)
         if criterion(date) and not partial_graph.IsNode(nodeId):
             new_node = partial_graph.AddNode(nodeId)
-            node_type = full_graph.GetStrAttrDatN(nodeId,'type')
-            partial_graph.AddStrAttrDatN(new_node,node_type,'type')
-            partial_graph.AddStrAttrDatN(new_node,date,'date')
+            node_type = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_TYPE)
+            partial_graph.AddStrAttrDatN(new_node,node_type,cst.ATTR_NODE_TYPE)
+            partial_graph.AddStrAttrDatN(new_node,date,cst.ATTR_NODE_CREATED_DATE)
 
     for edge in full_graph.Edges():
-        date = full_graph.GetStrAttrDatE(edge.GetId(),'date')        
+        date = full_graph.GetStrAttrDatE(edge.GetId(),cst.ATTR_EDGE_REVIEW_DATE)
         srcId = edge.GetSrcNId()
         dstId = edge.GetDstNId()
         if criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId) \
             and not partial_graph.IsEdge(srcId,dstId):
 
             new_edge = partial_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
-            partial_graph.AddStrAttrDatE(new_edge,date,'date')
+            partial_graph.AddStrAttrDatE(new_edge,date,cst.ATTR_EDGE_REVIEW_DATE)
+
+def get_empty_graph():
+     
+    ng = snap.TNEANet.New()
+    ng.AddStrAttrN(cst.ATTR_NODE_TYPE)
+    ng.AddStrAttrN(cst.ATTR_NODE_ID)
+    ng.AddStrAttrE(cst.ATTR_EDGE_REVIEW_DATE)
+    ng.AddStrAttrE(cst.ATTR_EDGE_ID)
+
+    return ng
 
 def get_subgraph_by_date(graph, criterion=lambda x: x < '2010-01-01'):
     """Returns new graph with edges and nodes matching value boolean lambda function"""
