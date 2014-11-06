@@ -1,6 +1,7 @@
 from collections import Counter
 from matplotlib import pyplot as plt
-from graphutils import get_subgraph_by_date
+from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges
+from utils import disp
 import snap
 
 def degree_dist(graph):
@@ -24,6 +25,49 @@ def degree_dist(graph):
     plt.yscale('log')
     plt.ylabel('log(count)')
     plt.show()
+
+def clustr_coeff_by_time(full_graph,dates=[]):
+    "Dates is a sorted iterable of dates at the format YYYY-MM-DD. The function will incrementally \
+     build a graph by adding edges and nodes according the dates in dates. For each date, the function \
+     will store the clustering coefficient of the graph"
+
+    graph = get_empty_graph()
+    n_dates = len(dates)
+    clustr_coeffs = [0]*n_dates
+    for idate in range(n_dates):
+        print('> Computing year %s' % dates[idate])
+        add_nodes_and_edges(full_graph,graph, lambda x : x < dates[idate] )
+        clustr_coeffs[idate] = snap.GetClustCf(graph)
+
+    plt.plot(clustr_coeffs)
+    plt.xticks(range(len(clustr_coeffs)),dates,size='small')
+    plt.show()
+
+def nodes_and_edges_by_time(full_graph,dates=[]):
+    "Dates is a sorted iterable of dates at the format YYYY-MM-DD. The function will incrementally \
+     build a graph by adding edges and nodes according the dates in dates. For each date, the function \
+     will store the number of nodes/edges created"
+
+    graph = get_empty_graph()
+    n_dates = len(dates)
+    nodes = [0]*(n_dates+1)
+    edges = [0]*(n_dates+1)
+
+    for idate in range(n_dates):
+        print('> Computing year %s' % dates[idate])
+        add_nodes_and_edges(full_graph,graph, lambda x : x < dates[idate] )
+        nodes[idate+1] = graph.GetNodes()
+        edges[idate+1] = graph.GetEdges()
+
+    
+    nodes_rate = [ nodes[i+1] - nodes[i] for i in range(len(nodes)-1) ]
+    edges_rate = [ edges[i+1] - edges[i] for i in range(len(edges)-1) ]
+
+    plt.plot(nodes_rate,'b-')
+    plt.plot(edges_rate,'m--')
+    plt.legend(('nodes creation rate','edge creation rate'))
+    plt.show()
+    return (nodes,edges)
 
 def diam_by_time(graph, years=[]):
     diamsz = {}
