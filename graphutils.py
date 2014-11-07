@@ -6,6 +6,26 @@ def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
     return itertools.chain(self.GetOutEdges(), self.GetInEdges())
 
+def generate_all_graphs(max_year=2014, graph_file='computed/graph.bin'):
+    f = snap.TFIn(graph_file)
+    full_graph = snap.TNEANet.Load(f)
+
+    dates = []
+    for year in range(2004, max_year):
+        for month in ['01','02','03','04','05','06','07','08','09','10','11','12']:
+            date = str(year) + '-' + month + '-' + '01'
+            dates.append(date)
+
+    graph = get_empty_graph()
+    
+    dates = dates[10::]
+    for date in dates:
+        users, busin = add_nodes_and_edges(full_graph, graph, lambda x : x < date)
+        print("> Yield stats for date %s" % date)
+        yield users, busin, graph
+
+
+
 def delete_node_type(graph, attr='type', value='business'):
     """Delete all nodes of given type"""
     for node in graph.Nodes():
