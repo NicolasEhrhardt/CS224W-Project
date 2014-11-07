@@ -14,14 +14,20 @@ def delete_node_type(graph, attr='type', value='business'):
             graph.DelNode(node_id)
 
 def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010-01-01'):
-    """ adds to partial_graph, nodes and edges from full_graph if they fulfill the criterion """
+    """ adds to partial_graph, nodes and edges from full_graph if they fulfill the criterion \
+        returns a tuple containing (number of users added, number of businesses added)
+    """
 
+    users_added = 0 # number of users added to the graph
+    busin_added = 0 # number of businesses added to the graph
     for node in full_graph.Nodes():
         nodeId = node.GetId()
-        date = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_CREATED_DATE)
+        date = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_CREATED_DATE)        
         if criterion(date) and not partial_graph.IsNode(nodeId):
             new_node = partial_graph.AddNode(nodeId)
             node_type = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_TYPE)
+            users_added += (node_type == cst.ATTR_NODE_USER_TYPE)
+            busin_added += (node_type == cst.ATTR_NODE_BUSINESS_TYPE)
             partial_graph.AddStrAttrDatN(new_node,node_type,cst.ATTR_NODE_TYPE)
             partial_graph.AddStrAttrDatN(new_node,date,cst.ATTR_NODE_CREATED_DATE)
 
@@ -34,6 +40,8 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
 
             new_edge = partial_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId())
             partial_graph.AddStrAttrDatE(new_edge,date,cst.ATTR_EDGE_REVIEW_DATE)
+
+    return (users_added,busin_added)
 
 def get_empty_graph():
      

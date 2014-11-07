@@ -52,13 +52,16 @@ def nodes_and_edges_by_time(full_graph,dates=[]):
     n_dates = len(dates)
     nodes = [0]*(n_dates+1)
     edges = [0]*(n_dates+1)
-
+    nusers = [0]*(n_dates+1)
+    nbusin = [0]*(n_dates+1)
     for idate in range(n_dates):
         print('> Computing year %s' % dates[idate])
-        add_nodes_and_edges(full_graph,graph, lambda x : x < dates[idate] )
+        users,busin = add_nodes_and_edges(full_graph,graph, lambda x : x < dates[idate] )
         nodes[idate+1] = graph.GetNodes()
         edges[idate+1] = graph.GetEdges()
-
+        
+        nusers[idate+1] = nusers[idate] + users
+        nbusin[idate+1] = nbusin[idate] + busin
     
     nodes_rate = [ nodes[i+1] - nodes[i] for i in range(len(nodes)-1) ]
     edges_rate = [ edges[i+1] - edges[i] for i in range(len(edges)-1) ]
@@ -67,7 +70,22 @@ def nodes_and_edges_by_time(full_graph,dates=[]):
     plt.plot(edges_rate,'m--')
     plt.legend(('nodes creation rate','edge creation rate'))
     plt.show()
-    return (nodes,edges)
+
+    plt.plot(nodes,'b-')
+    plt.plot(edges,'m--')
+    plt.legend(('nodes','edges'))
+    plt.xlabel('month')
+    plt.ylabel('count')
+    plt.show()
+
+    plt.plot(nusers,'b-')
+    plt.plot(nbusin,'m--')
+    plt.legend(('users','businesses'))
+    plt.xlabel('month')
+    plt.ylabel('count')
+    plt.show()
+
+    return (nodes,edges,nusers,nbusin)
 
 def diam_by_time(graph, years=[]):
     diamsz = {}
