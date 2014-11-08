@@ -1,6 +1,6 @@
 from collections import Counter
 from matplotlib import pyplot as plt
-from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges
+from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs
 from utils import disp
 import snap
 
@@ -43,25 +43,21 @@ def clustr_coeff_by_time(full_graph,dates=[]):
     plt.xticks(range(len(clustr_coeffs)),dates,size='small')
     plt.show()
 
-def nodes_and_edges_by_time(full_graph,dates=[]):
+def nodes_and_edges_by_time(full_graph, max_year=2014):
     "Dates is a sorted iterable of dates at the format YYYY-MM-DD. The function will incrementally \
      build a graph by adding edges and nodes according the dates in dates. For each date, the function \
      will store the number of nodes/edges created"
 
-    graph = get_empty_graph()
-    n_dates = len(dates)
-    nodes = [0]*(n_dates+1)
-    edges = [0]*(n_dates+1)
-    nusers = [0]*(n_dates+1)
-    nbusin = [0]*(n_dates+1)
-    for idate in range(n_dates):
-        print('> Computing year %s' % dates[idate])
-        users,busin = add_nodes_and_edges(full_graph,graph, lambda x : x < dates[idate] )
-        nodes[idate+1] = graph.GetNodes()
-        edges[idate+1] = graph.GetEdges()
+    nodes = [0]
+    edges = [0]
+    nusers = [0]
+    nbusin = [0]
+    for users, busin, graph in generate_all_graphs(full_graph, max_year=max_year):
+        nodes.append(graph.GetNodes())
+        edges.append(graph.GetEdges())
         
-        nusers[idate+1] = nusers[idate] + users
-        nbusin[idate+1] = nbusin[idate] + busin
+        nusers.append(nusers[-1] + users)
+        nbusin.append(nbusin[-1] + busin)
     
     nodes_rate = [ nodes[i+1] - nodes[i] for i in range(len(nodes)-1) ]
     edges_rate = [ edges[i+1] - edges[i] for i in range(len(edges)-1) ]
