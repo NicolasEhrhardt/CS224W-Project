@@ -52,7 +52,7 @@ def nodes_and_edges_by_time(full_graph, max_year=2014):
     edges = [0]
     nusers = [0]
     nbusin = [0]
-    for users, busin, graph in generate_all_graphs(max_year=max_year):
+    for users, busin, graph in generate_all_graphs(full_graph, max_year=max_year):
         nodes.append(graph.GetNodes())
         edges.append(graph.GetEdges())
         

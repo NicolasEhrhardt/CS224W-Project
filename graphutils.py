@@ -6,10 +6,7 @@ def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
     return itertools.chain(self.GetOutEdges(), self.GetInEdges())
 
-def generate_all_graphs(max_year=2014, graph_file='computed/graph.bin'):
-    f = snap.TFIn(graph_file)
-    full_graph = snap.TNEANet.Load(f)
-
+def generate_all_graphs(full_graph, max_year=2014, graph_file='computed/graph.bin'):
     dates = []
     for year in range(2004, max_year):
         for month in ['01','02','03','04','05','06','07','08','09','10','11','12']:
