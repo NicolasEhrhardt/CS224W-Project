@@ -6,7 +6,7 @@ def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
     return itertools.chain(self.GetOutEdges(), self.GetInEdges())
 
-def generate_all_graphs(full_graph, max_year=2014, graph_file='computed/graph.bin'):
+def get_sorted_edges_nodes(full_graph):
     print("> Sorting for computation")
     sortednodes = {}
     for node in full_graph.Nodes():
@@ -30,7 +30,12 @@ def generate_all_graphs(full_graph, max_year=2014, graph_file='computed/graph.bi
             sortededges[date] = []
 
         sortededges[date].append((edgeId, srcId, dstId))
-  
+
+    return sortednodes, sortededges   
+
+def generate_all_graphs(full_graph, max_year=2014, graph_file='computed/graph.bin'):
+    sortednodes, sortededges = get_sorted_edges_nodes(full_graph)
+    
     # Creating dates array
     dates = []
     for year in range(2004, max_year):
