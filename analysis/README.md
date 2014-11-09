@@ -34,4 +34,10 @@ Users join the graph at a higher rate than the businesses.
 From this we can get the probability that a given new node, belongs to the users of businesses sets.
 
 
+Probability of edge linking to degree d
+=======================================
 
+![Alt text](newedge-degreeprob-alpha.png "Review creation parameter alpha for users and businesses")
+Users join the graph at a higher rate than the businesses.
+
+Users tend to follow the same law when reviewing. But review creation tends to come from users will smaller and smaller amount of reviews.
