@@ -128,6 +128,8 @@ def link_degree_density(full_graph, max_year=2014):
 
     plt.plot(range(len(dist_time)), useralpha, label='User')
     plt.plot(range(len(dist_time)), businessalpha, label='Business')
+    plt.xlabel('Month')
+    plt.ylabel('Alpha')
     plt.legend()
     plt.show()
 
