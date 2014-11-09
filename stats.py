@@ -26,7 +26,9 @@ def degree_dist(graph):
     plt.ylabel('log(count)')
     plt.show()
 
-def densification_exponent(graph_file='computed/graph.bin',max_year=2014)
+    return degdist
+
+def densification_exponent(graph_file='computed/graph.bin',max_year=2014):
 
   """ Plots the densification coefficient of the input graph. First it plot log-log plot\
     of E(t) vs N(t). The it plots the time evolution of their ration """
@@ -61,7 +63,7 @@ def densification_exponent(graph_file='computed/graph.bin',max_year=2014)
 
 
 
-def nodes_evolution(graph_file='computed/graph.bin',max_year=2014)
+def nodes_evolution(graph_file='computed/graph.bin',max_year=2014):
 
   """ Plots the densification coefficient of the input graph. First it plot log-log plot\
     of E(t) vs N(t). The it plots the time evolution of their ration """
@@ -103,7 +105,7 @@ def nodes_evolution(graph_file='computed/graph.bin',max_year=2014)
   plt.show()
 
 
-def users_vs_biz_evolution(graph_file='computed/graph.bin',max_year=2014)
+def users_vs_biz_evolution(graph_file='computed/graph.bin',max_year=2014):
 
   """ Plots the densification coefficient of the input graph. First it plot log-log plot\
     of E(t) vs N(t). The it plots the time evolution of their ration """
