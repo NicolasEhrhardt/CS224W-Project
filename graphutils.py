@@ -1,10 +1,10 @@
 import snap
-import itertools
+from itertools import chain, tee
 import constants as cst
 
 def GetInOutEdges(self):
     """Return ids of In or Out Nodes"""
-    return itertools.chain(self.GetOutEdges(), self.GetInEdges())
+    return chain(self.GetOutEdges(), self.GetInEdges())
 
 def get_sorted_edges_nodes(full_graph):
     print("> Sorting for computation")
@@ -17,7 +17,6 @@ def get_sorted_edges_nodes(full_graph):
             sortednodes[date] = []
         
         sortednodes[date].append(nodeId)
-            
 
     sortededges = {}
     for edge in full_graph.Edges():
@@ -31,31 +30,44 @@ def get_sorted_edges_nodes(full_graph):
 
         sortededges[date].append((edgeId, srcId, dstId))
 
-    return sortednodes, sortededges   
+    return sortednodes, sortededges
 
-def generate_all_graphs(full_graph, max_year=2014, graph_file='computed/graph.bin'):
-    sortednodes, sortededges = get_sorted_edges_nodes(full_graph)
-    
+def get_dates(min_year=2004, max_year=2014):
     # Creating dates array
-    dates = []
-    for year in range(2004, max_year):
+    dates = ['']
+    for year in range(min_year, max_year):
         for month in ['01','02','03','04','05','06','07','08','09','10','11','12']:
             date = str(year) + '-' + month + '-' + '01'
             dates.append(date)
-
-    graph = get_empty_graph()
-    
     dates = dates[9::]
+    dates.insert(0, '2000-01-01')
+    return dates
+
+def generate_all_generators(full_graph, max_year=2014):
+    sortednodes, sortededges = get_sorted_edges_nodes(full_graph)
+    dates = get_dates(max_year=max_year)
+
     for idate in range(1, len(dates)):
         # criterion of fetching only dates in the right month
         criterion = lambda x : x < dates[idate] and x >= dates[idate-1]
         # creating array of nodes and edges to go over
-        curnodes = itertools.chain(*[sortednodes[k] for k in sortednodes if criterion(k)])
-        curedges = itertools.chain(*[sortededges[k] for k in sortededges if criterion(k)])
-        # updateing graph
-        users, busin = add_nodes_and_edges(full_graph, graph, criterion, curnodes=curnodes, curedges=curedges)
-        print("> Yield stats and graph until date %s" % dates[idate])
-        yield users, busin, graph
+        curnodes = chain.from_iterable([sortednodes[k] for k in sortednodes if criterion(k)])
+        curedges = chain.from_iterable([sortededges[k] for k in sortededges if criterion(k)])
+        print("> Yield edges and nodes until date %s" % dates[idate])
+        yield curnodes, curedges, criterion
+
+def generate_all_graphs(full_graph, detailed=False, max_year=2014):
+    graph = get_empty_graph()
+    for curnodes, curedges, criterion in generate_all_generators(full_graph, max_year):
+        # updating graph
+        if not detailed:
+            users, busin = add_nodes_and_edges(full_graph, graph, criterion, curnodes=curnodes, curedges=curedges)
+            yield users, busin, graph
+        else:
+            curnodes, curnodes_b = tee(curnodes)
+            curedges, curedges_b = tee(curedges)
+            users, busin = add_nodes_and_edges(full_graph, graph, criterion, curnodes=curnodes, curedges=curedges)
+            yield users, busin, graph, curnodes_b, curedges_b
 
 def delete_node_type(graph, attr='type', value='business'):
     """Delete all nodes of given type"""
@@ -101,6 +113,8 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
             busin_added += (node_type == cst.ATTR_NODE_BUSINESS_TYPE)
             partial_graph.AddStrAttrDatN(new_node,node_type,cst.ATTR_NODE_TYPE)
             partial_graph.AddStrAttrDatN(new_node,date,cst.ATTR_NODE_CREATED_DATE)
+        elif curnodes is not None:
+            print "Node not created", nodeId
 
     for edgeId, srcId, dstId in edgegen():
         date = full_graph.GetStrAttrDatE(edgeId,cst.ATTR_EDGE_REVIEW_DATE)
@@ -109,6 +123,8 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
 
             new_edge = partial_graph.AddEdge(srcId, dstId)
             partial_graph.AddStrAttrDatE(new_edge,date,cst.ATTR_EDGE_REVIEW_DATE)
+        elif curedges is not None and not (criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId)):
+            print "Edge not created for weird reason", edgeId 
 
     return (users_added,busin_added)
 
