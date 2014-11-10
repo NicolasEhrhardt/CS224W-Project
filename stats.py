@@ -163,7 +163,7 @@ def nodes_and_edges_by_time(full_graph, max_year=2014,plots=False):
         
         nusers.append(nusers[-1] + users)
         nbusin.append(nbusin[-1] + busin)
-    
+
     nodes_rate = [ nodes[i+1] - nodes[i] for i in range(len(nodes)-1) ]
     edges_rate = [ edges[i+1] - edges[i] for i in range(len(edges)-1) ]
 
