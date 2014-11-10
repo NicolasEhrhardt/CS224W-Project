@@ -1,7 +1,8 @@
 from collections import Counter
 from matplotlib import pyplot as plt
-from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs
-from utils import disp
+from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs 
+import constants as cst
+import numpy as np
 import snap
 
 def degree_dist(graph):
@@ -36,15 +37,13 @@ def densification_exponent(graph_file='computed/graph.bin',max_year=2014):
   f = snap.TFIn(graph_file)
   full_graph = snap.TNEANet.Load(f)
 
-  nodes,edges,users,busin = stats.nodes_and_edges_by_time(full_graph,max_year)
+  nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
 
   # Keep nodes and edges with count > 1
   nodes = nodes[4::]
   edges = edges[4::]
 
   ## Compute densification exponent
-  idx_start = 0
-
   plt.plot(nodes,edges,'ob-',linewidth=3.)
   plt.yscale('log')
   plt.xscale('log')
@@ -61,74 +60,136 @@ def densification_exponent(graph_file='computed/graph.bin',max_year=2014):
   plt.grid(True)
   plt.show()
 
+def linreg(x, y):
+    """Compute the linear regression of x and y (no bias here)"""
+    return np.dot(x, y) / np.dot(x, x)
+
+def ccdf(x):
+    """Return backward cumsum"""
+    y = [x[-1]]
+    for i in range(1, len(x)):
+        y.append(x[-1-i] + y[-1])
+    y.reverse()
+    return y
+
+def alphaccdfreg(ct):
+    """Compute alpha assuming that probability counter is following
+    a power law p(t) \propto t^{-\alpha}, using the CCDF regression method"""
+
+    if not ct:
+        return 0
+    ccdfexp = np.array(ccdf(ct.values()))
+    bins = np.array(ct.keys())
+    goodidx = np.where(bins > 0)
+
+    lccdf = np.log(ccdfexp[goodidx])
+    lbins = np.log(bins[goodidx])
+
+    return 1 - linreg(lccdf, lbins)
+
+def normalize(ct):
+    """Normalize counter to probability counter"""
+    tot = float(sum(ct.values()))
+    for key in ct:
+        ct[key] /= tot
+
+def link_degree_density(full_graph, max_year=2014):
+    """Assuming that the probability of an edge created at time t will be linked to a node of degree d
+    following a law \propto d^{-alpha}, compute alpha overtime and plot for each type of node"""
+    dist_time = []
+    
+    def counter_update(graph, nodeId, dist):
+        try:
+            # Some edges returned by the generator have not been added to the graph, we need to pass them
+            node_type = graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
+            deg = graph.GetNI(nodeId).GetDeg()
+            dist[node_type].update([deg])
+        except:
+            pass
+    
+    for users, busin, graph, curnodes, curedges in generate_all_graphs(full_graph, detailed=True, max_year=max_year):
+
+        dist = {cst.ATTR_NODE_USER_TYPE: Counter(), cst.ATTR_NODE_BUSINESS_TYPE: Counter()}
+        for edgeId, srcId, dstId in curedges:
+            counter_update(graph, srcId, dist)
+            counter_update(graph, dstId, dist)
+
+        normalize(dist[cst.ATTR_NODE_BUSINESS_TYPE])
+        normalize(dist[cst.ATTR_NODE_USER_TYPE])
+
+        dist_time.append(dist)
+
+    useralpha = []
+    businessalpha = []
+    
+    for dist in dist_time:
+        useralpha.append(alphaccdfreg(dist[cst.ATTR_NODE_USER_TYPE]))
+        businessalpha.append(alphaccdfreg(dist[cst.ATTR_NODE_BUSINESS_TYPE]))
+
+    plt.plot(range(len(dist_time)), useralpha, label='User')
+    plt.plot(range(len(dist_time)), businessalpha, label='Business')
+    plt.xlabel('Month')
+    plt.ylabel('Alpha')
+    plt.legend()
+    plt.show()
 
 
-def nodes_evolution(graph_file='computed/graph.bin',max_year=2014):
+def nodes_evolution(full_graph, max_year=2014):
+    """ Plots the densification coefficient of the input graph. First it plot log-log plot\
+      of E(t) vs N(t). The it plots the time evolution of their ration """
+    nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
 
-  """ Plots the densification coefficient of the input graph. First it plot log-log plot\
-    of E(t) vs N(t). The it plots the time evolution of their ration """
-  
-  f = snap.TFIn(graph_file)
-  full_graph = snap.TNEANet.Load(f)
+    # Keep nodes and edges with count > 1
+    nodes = nodes[4::]
+    edges = edges[4::]
 
-  nodes,edges,users,busin = stats.nodes_and_edges_by_time(full_graph,max_year)
+    ## Fit curve on N(t) = beta[0]*log(t) + beta[1]
+    time_start = len(nodes)/3
+    t = range(len(nodes))
+    time = t[time_start::]
+    nodes2 = nodes[time_start::]
+    onez = np.ones((len(time),1))
 
-  # Keep nodes and edges with count > 1
-  nodes = nodes[4::]
-  edges = edges[4::]
+    # solve linear regression
+    lgt = np.vstack((np.log(time),onez.transpose())).transpose()
+    lgy = np.log(nodes2)
+    XX = np.dot(lgt.transpose(),lgt)
+    Xb = np.dot(lgt.transpose(),lgy)
+    beta = np.linalg.solve(XX,Xb)
 
-  ## Fit curve on N(t) = beta[0]*log(t) + beta[1]
-  time_start = len(nodes)/3
-  t = range(len(nodes))
-  time = t[time_start::]
-  nodes2 = nodes[time_start::]
-  onez = np.ones((len(time),1))
-
-  # solve linear regression
-  lgt = np.vstack((np.log(time),onez.transpose())).transpose()
-  lgy = np.log(nodes2)
-  XX = np.dot(lgt.transpose(),lgt)
-  Xb = np.dot(lgt.transpose(),lgy)
-  beta = np.linalg.solve(XX,Xb)
-
-  nodes_hat = np.multiply(np.power(time,beta[0]),np.exp(beta[1]))
-  plt.plot(nodes,'b-',linewidth=3.)
-  plt.plot(time,nodes_hat,'r--',linewidth=3.)
-  plt.yscale('log')
-  plt.grid(True)
-  plt.xlabel('Weeks')
-  plt.ylabel('Nodes')
-  beta1 = int(beta[1]*100)/100.
-  beta0 = int(beta[0]*100)/100.
-  curve = 'exp('+str(beta1) + ')*t^' + str(beta0)
-  plt.legend(('N(t)',curve))
-  plt.show()
+    nodes_hat = np.multiply(np.power(time,beta[0]),np.exp(beta[1]))
+    plt.plot(nodes,'b-',linewidth=3.)
+    plt.plot(time,nodes_hat,'r--',linewidth=3.)
+    plt.yscale('log')
+    plt.grid(True)
+    plt.xlabel('Weeks')
+    plt.ylabel('Nodes')
+    beta1 = int(beta[1]*100)/100.
+    beta0 = int(beta[0]*100)/100.
+    curve = 'exp('+str(beta1) + ')*t^' + str(beta0)
+    plt.legend(('N(t)',curve))
+    plt.show()
 
 
-def users_vs_biz_evolution(graph_file='computed/graph.bin',max_year=2014):
+def users_vs_biz_evolution(full_graph, max_year=2014):
+    """ Plots the densification coefficient of the input graph. First it plot log-log plot\
+      of E(t) vs N(t). The it plots the time evolution of their ration """
+    nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
 
-  """ Plots the densification coefficient of the input graph. First it plot log-log plot\
-    of E(t) vs N(t). The it plots the time evolution of their ration """
-  
-  f = snap.TFIn(graph_file)
-  full_graph = snap.TNEANet.Load(f)
+    # Keep nodes and edges with count > 1
+    nodes = nodes[4::]
+    edges = edges[4::]
 
-  nodes,edges,users,busin = stats.nodes_and_edges_by_time(full_graph,max_year)
-
-  # Keep nodes and edges with count > 1
-  nodes = nodes[4::]
-  edges = edges[4::]
-
-  ## users vs businesses
-  users = users[4::]
-  busin = busin[4::]
-  ratio_user_biz = [np.log(users[idx])/np.log(busin[idx]) for idx in range(len(users))]
-  plt.plot(ratio_user_biz,linewidth=3.)
-  plt.plot([0,len(ratio_user_biz)], [ratio_user_biz[-1], ratio_user_biz[-1]],'r--',linewidth=3.)
-  plt.xlabel('weeks')
-  plt.ylabel('log(nusers)/log(nbiz)')
-  plt.legend(('Observed','1.167'))
-  plt.show()
+    ## users vs businesses
+    users = users[4::]
+    busin = busin[4::]
+    ratio_user_biz = [np.log(users[idx])/np.log(busin[idx]) for idx in range(len(users))]
+    plt.plot(ratio_user_biz,linewidth=3.)
+    plt.plot([0,len(ratio_user_biz)], [ratio_user_biz[-1], ratio_user_biz[-1]],'r--',linewidth=3.)
+    plt.xlabel('weeks')
+    plt.ylabel('log(nusers)/log(nbiz)')
+    plt.legend(('Observed','1.167'))
+    plt.show()
 
 
 def clustr_coeff_by_time(full_graph,dates=[]):
