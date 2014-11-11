@@ -42,51 +42,52 @@ def link_creation_by_age(graph,max_year=2014):
             nodes_age[oldNode] += 1.
 
         for nodeId in nodesIter:
-            nodes_age[nodeId] += 1.
+            if nodeId not in nodes_age:
+                nodes_age[nodeId] = 1.
 
-        for edge in edgesIter:
-            srcId = edge[1]
-            dstId = edge[2]
-
+        for edgeId, srcId, dstId in edgesIter:
             age_src = nodes_age[srcId]
             age_dst = nodes_age[dstId]
 
             links_by_age['user'][age_src] += 1.
             links_by_age['biz'][age_dst] += 1.
 
+    plt.plot(links_by_age['user'].keys(), links_by_age['user'].values(), label='User')
+    plt.plot(links_by_age['biz'].keys(), links_by_age['biz'].values(), label='Business')
+    plt.yscale('log')
+    plt.xlabel('age')
+    plt.ylabel('log(count)')
+    plt.legend()
+    plt.show()
+
     return links_by_age
                         
 
-def densification_exponent(graph_file='computed/graph.bin',max_year=2014):
+def densification_exponent(full_graph, max_year=2014):
+    """ Plots the densification coefficient of the input graph. First it plot log-log plot\
+            of E(t) vs N(t). The it plots the time evolution of their ration """
+    nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
 
-  """ Plots the densification coefficient of the input graph. First it plot log-log plot\
-    of E(t) vs N(t). The it plots the time evolution of their ration """
-  
-  f = snap.TFIn(graph_file)
-  full_graph = snap.TNEANet.Load(f)
+    # Keep nodes and edges with count > 1
+    nodes = nodes[4::]
+    edges = edges[4::]
 
-  nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
+    ## Compute densification exponent
+    plt.plot(nodes,edges,'ob-',linewidth=3.)
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.xlabel('log N(t)')
+    plt.ylabel('log E(t)')
+    plt.grid(True)
+    plt.show()
 
-  # Keep nodes and edges with count > 1
-  nodes = nodes[4::]
-  edges = edges[4::]
-
-  ## Compute densification exponent
-  plt.plot(nodes,edges,'ob-',linewidth=3.)
-  plt.yscale('log')
-  plt.xscale('log')
-  plt.xlabel('log N(t)')
-  plt.ylabel('log E(t)')
-  plt.grid(True)
-  plt.show()
-
-  # plot empirical densification exponent
-  dens_exp = [np.log(edges[idx])/np.log(nodes[idx]) for idx in range(len(nodes))]
-  plt.plot(dens_exp,'s--',linewidth=3.)
-  plt.xlabel('t')
-  plt.ylabel('log N(t) / log E(t)')
-  plt.grid(True)
-  plt.show()
+    # plot empirical densification exponent
+    dens_exp = [np.log(edges[idx])/np.log(nodes[idx]) for idx in range(len(nodes))]
+    plt.plot(dens_exp,'s--',linewidth=3.)
+    plt.xlabel('t')
+    plt.ylabel('log N(t) / log E(t)')
+    plt.grid(True)
+    plt.show()
 
 def linreg(x, y):
     """Compute the linear regression of x and y (no bias here)"""
@@ -153,6 +154,14 @@ def link_degree_density(full_graph, max_year=2014):
     for dist in dist_time:
         useralpha.append(alphaccdfreg(dist[cst.ATTR_NODE_USER_TYPE]))
         businessalpha.append(alphaccdfreg(dist[cst.ATTR_NODE_BUSINESS_TYPE]))
+
+    Xu, Yu = zip(*sorted(dist[cst.ATTR_NODE_USER_TYPE].items()))
+    Xb, Yb = zip(*sorted(dist[cst.ATTR_NODE_BUSINESS_TYPE].items()))
+    plt.plot(Xu, Yu, label=cst.ATTR_NODE_USER_TYPE)
+    plt.plot(Xb, Yb, label=cst.ATTR_NODE_BUSINESS_TYPE)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.show()
 
     plt.plot(range(len(dist_time)), useralpha, label='User')
     plt.plot(range(len(dist_time)), businessalpha, label='Business')
