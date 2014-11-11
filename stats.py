@@ -1,6 +1,6 @@
 from collections import Counter
 from matplotlib import pyplot as plt
-from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs 
+from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs, generate_all_generators
 import constants as cst
 import numpy as np
 import snap
@@ -28,6 +28,34 @@ def degree_dist(graph):
     plt.show()
 
     return degdist
+
+def link_creation_by_age(graph,max_year=2014):
+    """ Computes the probability of an edge linking to a node of a given age (in months) """
+    links_by_age = {    
+                    'user':Counter(), #key=age, value=count
+                    'biz':Counter()
+                    }
+    nodes_age = Counter() #key=nodeId, value=age
+
+    for nodesIter,edgesIter,criterion in generate_all_generators(graph):
+        for oldNode in nodes_age:
+            nodes_age[oldNode] += 1.
+
+        for nodeId in nodesIter:
+            nodes_age[nodeId] += 1.
+
+        for edge in edgesIter:
+            srcId = edge[1]
+            dstId = edge[2]
+
+            age_src = nodes_age[srcId]
+            age_dst = nodes_age[dstId]
+
+            links_by_age['user'][age_src] += 1.
+            links_by_age['biz'][age_dst] += 1.
+
+    return links_by_age
+                        
 
 def densification_exponent(graph_file='computed/graph.bin',max_year=2014):
 

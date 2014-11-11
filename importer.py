@@ -40,7 +40,7 @@ for user_encid, date in generateYelpUser(user_file):
 
 
 print('>> Creating business nodes')
-for business_encid, lng, lat, stars in generateYelpBusiness(business_file):
+for business_encid, lng, lat, stars,state in generateYelpBusiness(business_file):
     business_node_id = graph.AddNode()
     graph.AddStrAttrDatN(business_node_id, business_encid, cst.ATTR_NODE_ID)
     graph.AddStrAttrDatN(business_node_id, cst.ATTR_NODE_BUSINESS_TYPE, cst.ATTR_NODE_TYPE)
