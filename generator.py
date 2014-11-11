@@ -26,4 +26,5 @@ def generateYelpBusiness(filename):
         business_id = business['business_id']
         lng, lat = business['longitude'], business['latitude']
         stars = business['stars']
-        yield business_id, lng, lat, stars
+        state = business['state']
+        yield business_id, lng, lat, stars,state.strip()
