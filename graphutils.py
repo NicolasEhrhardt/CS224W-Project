@@ -43,7 +43,7 @@ def get_dates(min_year=2004, max_year=2014):
     dates.insert(0, '2000-01-01')
     return dates
 
-def generate_all_generators(full_graph, max_year=2014):
+def generate_all_generators(full_graph, max_year=2014,verbose=False):
     sortednodes, sortededges = get_sorted_edges_nodes(full_graph)
     dates = get_dates(max_year=max_year)
 
@@ -53,7 +53,8 @@ def generate_all_generators(full_graph, max_year=2014):
         # creating array of nodes and edges to go over
         curnodes = chain.from_iterable([sortednodes[k] for k in sortednodes if criterion(k)])
         curedges = chain.from_iterable([sortededges[k] for k in sortededges if criterion(k)])
-        print("> Yield edges and nodes until date %s" % dates[idate])
+        if verbose:
+            print("> Yield edges and nodes until date %s" % dates[idate])
         yield curnodes, curedges, criterion
 
 def generate_all_graphs(full_graph, detailed=False, max_year=2014):
