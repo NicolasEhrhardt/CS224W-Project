@@ -176,35 +176,39 @@ def nodes_evolution(full_graph, max_year=2014):
       of E(t) vs N(t). The it plots the time evolution of their ration """
     nodes,edges,users,busin = nodes_and_edges_by_time(full_graph,max_year)
 
-    # Keep nodes and edges with count > 1
-    nodes = nodes[4::]
-    edges = edges[4::]
-
     ## Fit curve on N(t) = beta[0]*log(t) + beta[1]
-    time_start = len(nodes)/3
-    t = range(len(nodes))
-    time = t[time_start::]
-    nodes2 = nodes[time_start::]
-    onez = np.ones((len(time),1))
+    time_start = len(nodes)/5
+    time = range(time_start, len(nodes))
 
-    # solve linear regression
-    lgt = np.vstack((np.log(time),onez.transpose())).transpose()
-    lgy = np.log(nodes2)
-    XX = np.dot(lgt.transpose(),lgt)
-    Xb = np.dot(lgt.transpose(),lgy)
-    beta = np.linalg.solve(XX,Xb)
+    def get_approx(time, nodes):
+        onez = np.ones((len(time),1))
 
-    nodes_hat = np.multiply(np.power(time,beta[0]),np.exp(beta[1]))
-    plt.plot(nodes,'b-',linewidth=3.)
-    plt.plot(time,nodes_hat,'r--',linewidth=3.)
+        # solve linear regression
+        lgt = np.vstack((np.log(time),onez.transpose())).transpose()
+        lgy = np.log(nodes)
+        XX = np.dot(lgt.transpose(),lgt)
+        Xb = np.dot(lgt.transpose(),lgy)
+        beta = np.linalg.solve(XX,Xb)
+
+        nodes_hat = np.multiply(np.power(time,beta[0]),np.exp(beta[1]))
+        return nodes_hat, beta
+
+    users_hat, betau = get_approx(time, users[time_start::])
+    busin_hat, betab = get_approx(time, busin[time_start::])
+
+    plt.plot(users, 'b-', linewidth=3., label="Users")
+    plt.plot(busin, 'g-', linewidth=3., label="Businesses")
+
+    labelau = "exp(%f)*t^%f" % tuple(map(lambda x: round(x, 2), reversed(betau)))
+    plt.plot(time, users_hat, 'r--', linewidth=3., label=labelau)
+    labelab = "exp(%f)*t^%f" % tuple(map(lambda x: round(x, 2), reversed(betab)))
+    plt.plot(time, busin_hat, 'r--', linewidth=3., label=labelab)
+    
     plt.yscale('log')
-    plt.grid(True)
-    plt.xlabel('Weeks')
-    plt.ylabel('Nodes')
-    beta1 = int(beta[1]*100)/100.
-    beta0 = int(beta[0]*100)/100.
-    curve = 'exp('+str(beta1) + ')*t^' + str(beta0)
-    plt.legend(('N(t)',curve))
+    plt.xlabel('Months')
+    plt.ylabel('Count of Nodes')
+    #curve = 'exp('+str(beta1) + ')*t^' + str(beta0)
+    plt.legend(loc=4)
     plt.show()
 
 
@@ -287,16 +291,13 @@ def nodes_and_edges_by_time(full_graph, max_year=2014,plots=False):
 
     return (nodes,edges,nusers,nbusin)
 
-def diam_by_time(graph, years=[]):
-    diamsz = {}
+def diam_by_time(full_graph, min_year=2005, max_year=2014):
+    diamsz = []
 
-    for year in years:
-        print('> Computing year %d' % year)
-        ng = get_subgraph_by_date(graph, lambda x: x < str(year+1) + '-01-01')
-        diamsz[year] = snap.GetBfsFullDiam(ng, 20)
+    for users, busin, graph in generate_all_graphs(full_graph, min_year=min_year, max_year=max_year):
+        diamsz.append(snap.GetBfsFullDiam(graph, 40))
 
-    yearstr = [str(y) for y in years]
-    plt.plot(yearstr, diamsz.values())
+    plt.plot(diamsz)
     plt.xlabel('Year')
     plt.ylabel('Diameter')
     plt.show()

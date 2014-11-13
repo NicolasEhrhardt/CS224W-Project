@@ -43,9 +43,9 @@ def get_dates(min_year=2004, max_year=2014):
     dates.insert(0, '2000-01-01')
     return dates
 
-def generate_all_generators(full_graph, max_year=2014,verbose=False):
+def generate_all_generators(full_graph, min_year=2004, max_year=2014, verbose=False):
     sortednodes, sortededges = get_sorted_edges_nodes(full_graph)
-    dates = get_dates(max_year=max_year)
+    dates = get_dates(min_year=min_year, max_year=max_year)
 
     for idate in range(1, len(dates)):
         # criterion of fetching only dates in the right month
@@ -57,9 +57,9 @@ def generate_all_generators(full_graph, max_year=2014,verbose=False):
             print("> Yield edges and nodes until date %s" % dates[idate])
         yield curnodes, curedges, criterion
 
-def generate_all_graphs(full_graph, detailed=False, max_year=2014):
+def generate_all_graphs(full_graph, detailed=False, min_year=2004, max_year=2014):
     graph = get_empty_graph()
-    for curnodes, curedges, criterion in generate_all_generators(full_graph, max_year):
+    for curnodes, curedges, criterion in generate_all_generators(full_graph, min_year, max_year):
         # updating graph
         if not detailed:
             users, busin = add_nodes_and_edges(full_graph, graph, criterion, curnodes=curnodes, curedges=curedges)
@@ -116,7 +116,8 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
             partial_graph.AddStrAttrDatN(new_node,date,cst.ATTR_NODE_CREATED_DATE)
         elif curnodes is not None:
             print "Node not created", nodeId
-
+    
+    npassed = 0
     for edgeId, srcId, dstId in edgegen():
         date = full_graph.GetStrAttrDatE(edgeId,cst.ATTR_EDGE_REVIEW_DATE)
         if criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId) \
@@ -125,7 +126,9 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
             new_edge = partial_graph.AddEdge(srcId, dstId)
             partial_graph.AddStrAttrDatE(new_edge,date,cst.ATTR_EDGE_REVIEW_DATE)
         elif curedges is not None and not (criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId)):
-            print "Edge not created for weird reason", edgeId 
+            npassed += 1
+
+    print "Edges not created for weird reason", npassed 
 
     return (users_added,busin_added)
 
