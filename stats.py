@@ -1,9 +1,10 @@
 from collections import Counter
 from matplotlib import pyplot as plt
-from graphutils import get_subgraph_by_date, get_empty_graph, add_nodes_and_edges, generate_all_graphs, generate_all_generators
+from graphutils import get_empty_graph, add_nodes_and_edges, generate_all_graphs, generate_all_generators
 import constants as cst
 import numpy as np
 import snap
+from datetime import datetime
 
 def degree_dist(graph):
     degdist = {
@@ -28,6 +29,76 @@ def degree_dist(graph):
     plt.show()
 
     return degdist
+
+def age_between_review(full_graph, nreview=0):
+    alldates = {
+        cst.ATTR_NODE_USER_TYPE: Counter(),
+        cst.ATTR_NODE_BUSINESS_TYPE: Counter(),
+    }
+
+    def get_dt(strdate):
+        """Get datetime from string"""
+        if len(strdate) == 7:
+            return datetime.strptime(strdate, "%Y-%m")
+        else:
+            return datetime.strptime(strdate, "%Y-%m-%d")
+
+    def get_ranked(x, rank=0):
+        """From a list of score x, get the value of a certain rank:
+        >>> get_ranked([2,1,3], 1)
+        2
+        """
+        y = sorted(x)
+        return y[rank]
+    
+    def get_delta(egdeId, created_dt):
+        """return time delta"""
+        review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+        review_dt = get_dt(review_strdate)
+        return (review_dt - created_dt).days
+
+    for node in full_graph.Nodes():
+        nodeId = node.GetId()
+        if node.GetDeg() == 0:
+            continue
+
+        created_strdate = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_CREATED_DATE)
+        node_type = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
+        created_dt = get_dt(created_strdate)
+        nodereviews = []
+
+        # For users
+        for neighborId in node.GetOutEdges():
+            edgeId = full_graph.GetEId(nodeId, neighborId)
+            delta = get_delta(edgeId, created_dt)
+            if delta < 0:
+                continue
+
+            nodereviews.append(delta)
+
+        # For businesses
+        for neighborId in node.GetInEdges():
+            edgeId = full_graph.GetEId(neighborId, nodeId)
+            delta = get_delta(edgeId, created_dt)
+            if delta < 0:
+                continue
+
+            nodereviews.append(delta)
+
+        if nodereviews and len(nodereviews) > nreview:
+            alldates[node_type].update([get_ranked(nodereviews, rank=nreview)])
+
+    for node_type, dist in alldates.iteritems():
+        normalize(dist)
+        X, Y = dist_from_counter(dist)
+        plt.plot(X, Y, label=node_type)
+
+    plt.legend()
+    plt.xlabel('Number of days between reviews (%d, %d)' % (nreview, nreview+1))
+    plt.xscale('log')
+    plt.ylabel('Freq')
+    plt.ylabel('log')
+    plt.show()
 
 def link_creation_by_age(graph,max_year=2014):
     """ Computes the probability of an edge linking to a node of a given age (in months) """
@@ -61,7 +132,6 @@ def link_creation_by_age(graph,max_year=2014):
     plt.show()
 
     return links_by_age
-                        
 
 def densification_exponent(full_graph, max_year=2014):
     """ Plots the densification coefficient of the input graph. First it plot log-log plot\
@@ -122,6 +192,9 @@ def normalize(ct):
     for key in ct:
         ct[key] /= tot
 
+def dist_from_counter(ct):
+    return zip(*sorted(ct.items()))
+
 def link_degree_density(full_graph, max_year=2014):
     """Assuming that the probability of an edge created at time t will be linked to a node of degree d
     following a law \propto d^{-alpha}, compute alpha overtime and plot for each type of node"""
@@ -137,7 +210,7 @@ def link_degree_density(full_graph, max_year=2014):
             pass
     
     for users, busin, graph, curnodes, curedges in generate_all_graphs(full_graph, detailed=True, max_year=max_year):
-
+        
         dist = {cst.ATTR_NODE_USER_TYPE: Counter(), cst.ATTR_NODE_BUSINESS_TYPE: Counter()}
         for edgeId, srcId, dstId in curedges:
             counter_update(graph, srcId, dist)
@@ -150,18 +223,24 @@ def link_degree_density(full_graph, max_year=2014):
 
     useralpha = []
     businessalpha = []
-    
+
+    i = 1
     for dist in dist_time:
+        if i % 12 == 0 and dist[cst.ATTR_NODE_USER_TYPE] and dist[cst.ATTR_NODE_BUSINESS_TYPE]:
+            Xu, Yu = zip(*sorted(dist[cst.ATTR_NODE_USER_TYPE].items()))
+            Xb, Yb = zip(*sorted(dist[cst.ATTR_NODE_BUSINESS_TYPE].items()))
+            plt.plot(Xu, Yu, label='User')
+            plt.plot(Xb, Yb, label='Business')
+            plt.xscale('log')
+            plt.xlabel('Node degre')
+            plt.yscale('log')
+            plt.ylabel('Ratio of links created this month')
+            plt.legend()
+            plt.show()
+
+        i += 1
         useralpha.append(alphaccdfreg(dist[cst.ATTR_NODE_USER_TYPE]))
         businessalpha.append(alphaccdfreg(dist[cst.ATTR_NODE_BUSINESS_TYPE]))
-
-    Xu, Yu = zip(*sorted(dist[cst.ATTR_NODE_USER_TYPE].items()))
-    Xb, Yb = zip(*sorted(dist[cst.ATTR_NODE_BUSINESS_TYPE].items()))
-    plt.plot(Xu, Yu, label=cst.ATTR_NODE_USER_TYPE)
-    plt.plot(Xb, Yb, label=cst.ATTR_NODE_BUSINESS_TYPE)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.show()
 
     plt.plot(range(len(dist_time)), useralpha, label='User')
     plt.plot(range(len(dist_time)), businessalpha, label='Business')
@@ -231,7 +310,6 @@ def users_vs_biz_evolution(full_graph, max_year=2014):
     plt.ylabel('log(nusers)/log(nbiz)')
     plt.legend(('Observed','1.167'))
     plt.show()
-
 
 def clustr_coeff_by_time(full_graph,dates=[]):
     "Dates is a sorted iterable of dates at the format YYYY-MM-DD. The function will incrementally \
@@ -333,4 +411,3 @@ def raw_stats(graph):
     plt.plot(reviewy, reviewc, label='Review counts')
     plt.legend()
     plt.show()
-
