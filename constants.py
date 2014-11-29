@@ -2,6 +2,8 @@
 ATTR_NODE_ID = 'id'
 ATTR_NODE_TYPE = 'type'
 ATTR_NODE_CREATED_DATE = 'date'
+ATTR_NODE_ELITE_YEAR = 'elite'
+ATTR_NOT_ELITE = -1
 
 # The two types of node
 ATTR_NODE_BUSINESS_TYPE = 'business'

@@ -43,19 +43,15 @@ def age_between_review(full_graph, nreview=0):
         else:
             return datetime.strptime(strdate, "%Y-%m-%d")
 
-    def get_ranked(x, rank=0):
+    def get_ranked(x, rank=1):
         """From a list of score x, get the value of a certain rank:
         >>> get_ranked([2,1,3], 1)
         2
         """
         y = sorted(x)
-        return y[rank]
+        return (y[rank] - y[rank-1]).days
     
-    def get_delta(egdeId, created_dt):
-        """return time delta"""
-        review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
-        review_dt = get_dt(review_strdate)
-        return (review_dt - created_dt).days
+    jumpednodes = 0
 
     for node in full_graph.Nodes():
         nodeId = node.GetId()
@@ -64,29 +60,40 @@ def age_between_review(full_graph, nreview=0):
 
         created_strdate = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_CREATED_DATE)
         node_type = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
+
+        if node_type == cst.ATTR_NODE_USER_TYPE and full_graph.GetIntAttrDatN(nodeId, cst.ATTR_NODE_ELITE_YEAR) == cst.ATTR_NOT_ELITE:
+            jumpednodes += 1
+            continue
+
         created_dt = get_dt(created_strdate)
-        nodereviews = []
+        nodereviews = [created_dt]
 
         # For users
         for neighborId in node.GetOutEdges():
             edgeId = full_graph.GetEId(nodeId, neighborId)
-            delta = get_delta(edgeId, created_dt)
+            review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+            review_dt = get_dt(review_strdate)
+            delta = (review_dt - created_dt).days
             if delta < 0:
                 continue
 
-            nodereviews.append(delta)
+            nodereviews.append(review_dt)
 
         # For businesses
         for neighborId in node.GetInEdges():
             edgeId = full_graph.GetEId(neighborId, nodeId)
-            delta = get_delta(edgeId, created_dt)
+            review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+            review_dt = get_dt(review_strdate)
+            delta = (review_dt - created_dt).days
             if delta < 0:
                 continue
 
-            nodereviews.append(delta)
+            nodereviews.append(review_dt)
 
         if nodereviews and len(nodereviews) > nreview:
             alldates[node_type].update([get_ranked(nodereviews, rank=nreview)])
+
+    print jumpednodes
 
     for node_type, dist in alldates.iteritems():
         normalize(dist)
@@ -96,7 +103,7 @@ def age_between_review(full_graph, nreview=0):
     plt.legend()
     plt.xlabel('Number of days between reviews (%d, %d)' % (nreview, nreview+1))
     plt.xscale('log')
-    plt.ylabel('Freq')
+    plt.ylabel('Frequency')
     plt.ylabel('log')
     plt.show()
 

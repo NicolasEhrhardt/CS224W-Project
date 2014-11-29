@@ -17,7 +17,8 @@ def generateYelpUser(filename):
         user = json.loads(line)
         user_id = user['user_id']
         date = user['yelping_since']
-        yield user_id, date
+        elite = user['elite']
+        yield user_id, date, elite
 
 def generateYelpBusiness(filename):
     # extracting tokens

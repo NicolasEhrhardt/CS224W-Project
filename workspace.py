@@ -2,7 +2,7 @@ import snap
 from graphutils import delete_node_type, get_subgraph_by_date, copy_graph
 from projection import projection
 
-graph_file = 'computed/graph.bin'
+graph_file = 'computed/graph_elite.bin'
 
 f = snap.TFIn(graph_file)
 graph = snap.TNEANet.Load(f)
