@@ -184,7 +184,8 @@ def age_between_review(full_graph, nreview=0):
         normalize(dist)
         X, Y = dist_from_counter(dist)
         array_age_dist = np.asarray([X,Y])
-        np.savetxt(node_type+"_age_dist.csv",array_age_dist,delimiter=",")
+        name = node_type+"_age_between_"+str(nreview)
+        np.savetxt('computed/'+name+".csv",array_age_dist,delimiter=",")
         plt.ylim([0,max(Y)+0.01])
         plt.yscale('log')
         plt.plot(X, Y, label=node_type)
@@ -195,6 +196,7 @@ def age_between_review(full_graph, nreview=0):
     plt.xscale('log')
     plt.ylabel('Frequency')
     plt.yscale('log')
+    plt.savefig('analysis/'+name+'.png')
     plt.show()
 
 def link_creation_by_age(graph,max_year=2014):
