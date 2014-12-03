@@ -30,6 +30,83 @@ def degree_dist(graph):
 
     return degdist
 
+def lifetime(full_graph):
+    alldates = {
+        cst.ATTR_NODE_USER_TYPE: Counter(),
+        cst.ATTR_NODE_BUSINESS_TYPE: Counter(),
+    }
+
+    def get_dt(strdate):
+        """Get datetime from string"""
+        if len(strdate) == 7:
+            return datetime.strptime(strdate, "%Y-%m")
+        else:
+            return datetime.strptime(strdate, "%Y-%m-%d")
+
+    def get_lifetime(x):
+        """From a list of score x, get the lifetime of node
+        >>> get_lifetime([2,1,3], 1)
+        2
+        """
+        y = sorted(x)
+        return (y[-1] - y[1]).days
+    
+    jumpednodes = 0
+
+    for node in full_graph.Nodes():
+        nodeId = node.GetId()
+        if node.GetDeg() == 0:
+            continue
+
+        created_strdate = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_CREATED_DATE)
+        node_type = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
+
+        #if node_type == cst.ATTR_NODE_USER_TYPE and full_graph.GetIntAttrDatN(nodeId, cst.ATTR_NODE_ELITE_YEAR) == cst.ATTR_NOT_ELITE:
+        #    jumpednodes += 1
+        #    continue
+
+        created_dt = get_dt(created_strdate)
+        nodereviews = [created_dt]
+
+        # For users
+        for neighborId in node.GetOutEdges():
+            edgeId = full_graph.GetEId(nodeId, neighborId)
+            review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+            review_dt = get_dt(review_strdate)
+            delta = (review_dt - created_dt).days
+            if delta < 0:
+                continue
+
+            nodereviews.append(review_dt)
+
+        # For businesses
+        for neighborId in node.GetInEdges():
+            edgeId = full_graph.GetEId(neighborId, nodeId)
+            review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+            review_dt = get_dt(review_strdate)
+            delta = (review_dt - created_dt).days
+            if delta < 0:
+                continue
+
+            nodereviews.append(review_dt)
+
+        if nodereviews and len(nodereviews) > 1:
+            alldates[node_type].update([get_lifetime(nodereviews)])
+
+    print jumpednodes
+
+    for node_type, dist in alldates.iteritems():
+        normalize(dist)
+        X, Y = dist_from_counter(dist)
+        plt.plot(X, Y, label=node_type)
+
+    plt.legend()
+    plt.xlabel('Lifetime')
+    plt.xscale('log')
+    plt.ylabel('Frequency')
+    plt.yscale('log')
+    plt.show()
+
 def age_between_review(full_graph, nreview=0):
     alldates = {
         cst.ATTR_NODE_USER_TYPE: Counter(),
@@ -43,9 +120,9 @@ def age_between_review(full_graph, nreview=0):
         else:
             return datetime.strptime(strdate, "%Y-%m-%d")
 
-    def get_ranked(x, rank=1):
+    def get_time_between(x, rank=1):
         """From a list of score x, get the value of a certain rank:
-        >>> get_ranked([2,1,3], 1)
+        >>> get_time_between([2,1,3], 1)
         2
         """
         y = sorted(x)
@@ -61,9 +138,9 @@ def age_between_review(full_graph, nreview=0):
         created_strdate = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_CREATED_DATE)
         node_type = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
 
-        if node_type == cst.ATTR_NODE_USER_TYPE and full_graph.GetIntAttrDatN(nodeId, cst.ATTR_NODE_ELITE_YEAR) == cst.ATTR_NOT_ELITE:
-            jumpednodes += 1
-            continue
+        #if node_type == cst.ATTR_NODE_USER_TYPE and full_graph.GetIntAttrDatN(nodeId, cst.ATTR_NODE_ELITE_YEAR) == cst.ATTR_NOT_ELITE:
+        #    jumpednodes += 1
+        #    continue
 
         created_dt = get_dt(created_strdate)
         nodereviews = [created_dt]
@@ -91,7 +168,7 @@ def age_between_review(full_graph, nreview=0):
             nodereviews.append(review_dt)
 
         if nodereviews and len(nodereviews) > nreview:
-            alldates[node_type].update([get_ranked(nodereviews, rank=nreview)])
+            alldates[node_type].update([get_time_between(nodereviews, rank=nreview)])
 
     print jumpednodes
 
@@ -104,7 +181,7 @@ def age_between_review(full_graph, nreview=0):
     plt.xlabel('Number of days between reviews (%d, %d)' % (nreview, nreview+1))
     plt.xscale('log')
     plt.ylabel('Frequency')
-    plt.ylabel('log')
+    plt.yscale('log')
     plt.show()
 
 def link_creation_by_age(graph,max_year=2014):
@@ -201,6 +278,39 @@ def normalize(ct):
 
 def dist_from_counter(ct):
     return zip(*sorted(ct.items()))
+
+def link_degree(full_graph, max_year=2014):
+    """Assuming that the probability of an edge created at time t will be linked to a node of degree d
+    following a law \propto d^{-alpha}, compute alpha overtime and plot for each type of node"""
+    
+    def counter_update(graph, nodeId, dist):
+        try:
+            # Some edges returned by the generator have not been added to the graph, we need to pass them
+            node_type = graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
+            deg = graph.GetNI(nodeId).GetDeg()
+            dist[node_type].update([deg])
+        except:
+            pass
+
+    dist = {cst.ATTR_NODE_USER_TYPE: Counter(), cst.ATTR_NODE_BUSINESS_TYPE: Counter()}
+    for users, busin, graph, curnodes, curedges in generate_all_graphs(full_graph, detailed=True, max_year=max_year):
+        for edgeId, srcId, dstId in curedges:
+            counter_update(graph, srcId, dist)
+            counter_update(graph, dstId, dist)
+
+    normalize(dist[cst.ATTR_NODE_BUSINESS_TYPE])
+    normalize(dist[cst.ATTR_NODE_USER_TYPE])
+
+    Xb, Yb = dist_from_counter(dist[cst.ATTR_NODE_BUSINESS_TYPE])
+    Xu, Yu = dist_from_counter(dist[cst.ATTR_NODE_USER_TYPE])
+    plt.plot(Xu, Yu, label='User')
+    plt.plot(Xb, Yb, label='Business')
+    #plt.xscale('log')
+    plt.xlabel('Node degre')
+    #plt.yscale('log')
+    plt.ylabel('Ratio of links created this month')
+    plt.legend()
+    plt.show()
 
 def link_degree_density(full_graph, max_year=2014):
     """Assuming that the probability of an edge created at time t will be linked to a node of degree d
