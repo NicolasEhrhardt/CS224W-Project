@@ -52,6 +52,14 @@ def age_between_review(full_graph, nreview=0):
         return (y[rank] - y[rank-1]).days
     
     jumpednodes = 0
+    def save_to_csv(X,Y):
+        np
+
+    def get_delta(egdeId, created_dt):
+        """return time delta"""
+        review_strdate = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
+        review_dt = get_dt(review_strdate)
+        return (review_dt - created_dt).days
 
     for node in full_graph.Nodes():
         nodeId = node.GetId()
@@ -98,7 +106,12 @@ def age_between_review(full_graph, nreview=0):
     for node_type, dist in alldates.iteritems():
         normalize(dist)
         X, Y = dist_from_counter(dist)
+        array_age_dist = np.asarray([X,Y])
+        np.savetxt(node_type+"_age_dist.csv",array_age_dist,delimiter=",")
+        plt.ylim([0,max(Y)+0.01])
+        plt.yscale('log')
         plt.plot(X, Y, label=node_type)
+
 
     plt.legend()
     plt.xlabel('Number of days between reviews (%d, %d)' % (nreview, nreview+1))
