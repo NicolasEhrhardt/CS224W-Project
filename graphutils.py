@@ -82,9 +82,6 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
         returns a tuple containing (number of users added, number of businesses added)
     """
 
-    users_added = 0 # number of users added to the graph
-    busin_added = 0 # number of businesses added to the graph
-
     # node generator going over all the nodes or a subset if given
     def nodegen():
         if curnodes is None:
@@ -105,50 +102,65 @@ def add_nodes_and_edges(full_graph, partial_graph, criterion=lambda x: x < '2010
             for x in curedges:
                 yield x
 
+    users_added = 0 # number of users added to the graph
+    busin_added = 0 # number of businesses added to the graph
+
     for nodeId in nodegen():
         date = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_CREATED_DATE)        
         if criterion(date) and not partial_graph.IsNode(nodeId):
-            new_node = partial_graph.AddNode(nodeId)
-            node_type = full_graph.GetStrAttrDatN(nodeId,cst.ATTR_NODE_TYPE)
+            new_nodeId = partial_graph.AddNode(nodeId)
+            node_type = full_graph.GetStrAttrDatN(nodeId, cst.ATTR_NODE_TYPE)
             users_added += (node_type == cst.ATTR_NODE_USER_TYPE)
             busin_added += (node_type == cst.ATTR_NODE_BUSINESS_TYPE)
-            partial_graph.AddStrAttrDatN(new_node,node_type,cst.ATTR_NODE_TYPE)
-            partial_graph.AddStrAttrDatN(new_node,date,cst.ATTR_NODE_CREATED_DATE)
+
+            for node_attr in cst.ATTR_STR_NODE:
+                value = full_graph.GetStrAttrDatN(nodeId, node_attr)
+                partial_graph.AddStrAttrDatN(new_nodeId, value, node_attr)
+
+            for node_attr in cst.ATTR_INT_NODE:
+                value = full_graph.GetIntAttrDatN(nodeId, node_attr)
+                partial_graph.AddIntAttrDatN(new_nodeId, value, node_attr)
+
         elif curnodes is not None:
             print "Node not created", nodeId
     
     npassed = 0
     for edgeId, srcId, dstId in edgegen():
-        date = full_graph.GetStrAttrDatE(edgeId,cst.ATTR_EDGE_REVIEW_DATE)
+        date = full_graph.GetStrAttrDatE(edgeId, cst.ATTR_EDGE_REVIEW_DATE)
         if criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId) \
-            and not partial_graph.IsEdge(srcId,dstId):
+            and not partial_graph.IsEdge(srcId, dstId):
 
-            new_edge = partial_graph.AddEdge(srcId, dstId)
-            partial_graph.AddStrAttrDatE(new_edge,date,cst.ATTR_EDGE_REVIEW_DATE)
+            new_edgeId = partial_graph.AddEdge(srcId, dstId)
+            for edge_attr in cst.ATTR_STR_EDGE:
+                value = full_graph.GetStrAttrDatE(edgeId, edge_attr)
+                partial_graph.AddStrAttrDatE(new_edgeId, value, edge_attr)
+
         elif curedges is not None and not (criterion(date) and partial_graph.IsNode(srcId) and partial_graph.IsNode(dstId)):
             npassed += 1
 
-    print "Edges not created for weird reason", npassed 
+    if npassed:
+        print "Edges not created for weird reason", npassed 
 
-    return (users_added,busin_added)
+    return (users_added, busin_added)
 
 def get_empty_graph():
-     
     ng = snap.TNEANet.New()
-    ng.AddStrAttrN(cst.ATTR_NODE_TYPE)
-    ng.AddStrAttrN(cst.ATTR_NODE_ID)
-    ng.AddStrAttrE(cst.ATTR_EDGE_REVIEW_DATE)
-    ng.AddStrAttrE(cst.ATTR_EDGE_ID)
+
+    for node_attr in cst.ATTR_INT_NODE:
+        ng.AddIntAttrN(node_attr)
+
+    for node_attr in cst.ATTR_STR_NODE:
+        ng.AddStrAttrN(node_attr)
+
+    for edge_attr in cst.ATTR_STR_EDGE:
+        ng.AddStrAttrE(edge_attr)
 
     return ng
 
 def get_subgraph_by_date(graph, criterion=lambda x: x < '2010-01-01'):
     """Returns new graph with edges and nodes matching value boolean lambda function"""
-    ng = snap.TNEANet.New()
-    ng.AddStrAttrN(cst.ATTR_NODE_TYPE)
-    ng.AddStrAttrN(cst.ATTR_NODE_ID)
-    ng.AddStrAttrE(cst.ATTR_EDGE_REVIEW_DATE)
-    ng.AddStrAttrE(cst.ATTR_EDGE_ID)
+    ng = get_empty_graph()
+
     add_nodes_and_edges(graph, ng, criterion)
     
     return ng
