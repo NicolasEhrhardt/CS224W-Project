@@ -126,7 +126,10 @@ def age_between_review(full_graph, nreview=0):
         2
         """
         y = sorted(x)
-        return (y[rank] - y[rank-1]).days
+        if rank == 0:
+            return [ (y[rank] - y[rank-1]).days for rank in range(1,len(y)) ]
+        else:
+            return [(y[rank] - y[rank-1]).days]
     
     jumpednodes = 0
     def save_to_csv(X,Y):
@@ -175,8 +178,8 @@ def age_between_review(full_graph, nreview=0):
 
             nodereviews.append(review_dt)
 
-        if nodereviews and len(nodereviews) > nreview:
-            alldates[node_type].update([get_time_between(nodereviews, rank=nreview)])
+        if nodereviews and len(nodereviews) > nreview:            
+            alldates[node_type].update(get_time_between(nodereviews, rank=nreview))
 
     print jumpednodes
 

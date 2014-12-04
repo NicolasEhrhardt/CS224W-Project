@@ -1,6 +1,41 @@
 from graphutils import get_empty_graph, add_nodes_and_edges
 from random import sample
 import constants as cst
+import numpy as np
+
+
+def nodesarrival(time):
+    # time: time since beginning of yelp in months
+    beta = 1.
+    mu = 2.319
+    sigma = 4.9e-1
+    alpha = 0.87
+
+    # total number of new nodes
+    new_nodes = beta* time**mu * np.exp( (sigma * np.log(time))**2/2)
+    # separate ne new nodes into user nodes (nu) and business nodes (nb = nu**alpha)
+    def fnodes(nu): 
+        return nu + np.power(nu,alpha) - new_nodes
+    
+    # solve for nun using secant-method
+    def nu_update(nun,h=1e-1): 
+        return nun - fnodes(nun)*2*h/(fnodes(nun+h) - fnodes(nun-h))
+
+    nun = new_nodes/2.
+    while abs(nun - nu_update(nun))/nun > 1e-6:
+        nun = nu_update(nun)
+
+    new_users = nun
+    new_biz = new_nodes - nun
+
+    return (new_nodes,new_users,new_biz)
+
+def reviewdelta():
+    dist = np.loadtxt('computed/age_between_reviews.csv',delimiter=',')
+    weights = dist[1]
+    population = dist[0]
+    sample = np.random.choice(population,1,True,weights)
+    return sample[0]
 
 def get_half(graph, cut=lambda x: x < '2011-01-01'):
     half_graph = get_empty_graph()
@@ -10,6 +45,7 @@ def get_half(graph, cut=lambda x: x < '2011-01-01'):
 def simulate(graph, userarrival, bizarrival, lifetime, reviewdelta, nstep=10):
     nodelifetime = dict()
     nodewakeup = dict()
+    month_start = 77
 
     for node in graph.Nodes():
         if graph.GetStrAttrDatN(node.GetId(), cst.ATTR_NODE_TYPE) == cst.ATTR_NODE_USER_TYPE:
@@ -23,7 +59,7 @@ def simulate(graph, userarrival, bizarrival, lifetime, reviewdelta, nstep=10):
 
         if node_type == cst.ATTR_NODE_USER_TYPE:
             # set lifetime and wake-up time
-            nodelifetime[new_nodeId] = lifetime()
+            nodelifetime[new_nodeId] = lifetime() # TODO add lifetime() (or remove)
             nodewakeup[new_nodeId] = reviewdelta()
 
         return new_nodeId
@@ -36,9 +72,8 @@ def simulate(graph, userarrival, bizarrival, lifetime, reviewdelta, nstep=10):
     for step in range(nstep):
         
         # Step 1. Add new nodes
-
-        nb_newusers = userarrival(step)
-        nb_newbizs = bizarrival(step)
+        
+        nb_newnodes,nb_newusers,nb_newbizs = nodesarrival(month_start+nstep)
 
         # Step 2. 3. 4. Sample life time, link new nodes using PA, Sample wakeup time 
 

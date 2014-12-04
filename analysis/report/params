@@ -1,0 +1,4 @@
+# a few parameters to remember
+
+N_biz(t) = N_user(t)^alpha
+alpha = 0.87
