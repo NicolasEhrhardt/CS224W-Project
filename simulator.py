@@ -64,17 +64,18 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
     nodewakeup = dict()
     nb_users = 0
     nb_bizs = 0
+    day = month_start * 30
 
     print "Computing node counts"
     for node in graph.Nodes():
         if graph.GetStrAttrDatN(node.GetId(), cst.ATTR_NODE_TYPE) == cst.ATTR_NODE_USER_TYPE:
-            nodelifetime[node.GetId()] = lifetime()
-            nodewakeup[node.GetId()] = reviewdelta()
+            nodelifetime[node.GetId()] = day + lifetime()
+            nodewakeup[node.GetId()] = day + reviewdelta()
             nb_users += 1
         else:
             nb_bizs += 1
 
-    def add_node(node_type, date, day):
+    def add_node(node_type, date, d):
         # adding node and metadata
         new_nodeId = graph.AddNode()
         graph.AddStrAttrDatN(new_nodeId, node_type, cst.ATTR_NODE_TYPE)
@@ -82,8 +83,8 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
 
         if node_type == cst.ATTR_NODE_USER_TYPE:
             # set lifetime and wake-up time
-            nodelifetime[new_nodeId] = day + lifetime()
-            nodewakeup[new_nodeId] = day + reviewdelta()
+            nodelifetime[new_nodeId] = d + lifetime()
+            nodewakeup[new_nodeId] = d + reviewdelta()
 
         return new_nodeId
 
@@ -95,7 +96,6 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
     print "Starting alg"
 
     delta = timedelta(days=1)
-    day = month_start * 30
     while date_start <= date_end:
         date_start += delta
         day += 1.
