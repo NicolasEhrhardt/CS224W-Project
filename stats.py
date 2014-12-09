@@ -98,6 +98,9 @@ def lifetime(full_graph):
     for node_type, dist in alldates.iteritems():
         normalize(dist)
         X, Y = dist_from_counter(dist)
+        array_dist = np.asarray([X,Y])
+        name = node_type + "_lifetime"
+        np.savetxt('computed/' + name + ".csv", array_dist, delimiter=",")
         plt.plot(X, Y, label=node_type)
 
     plt.legend()
@@ -106,6 +109,8 @@ def lifetime(full_graph):
     plt.ylabel('Frequency')
     plt.yscale('log')
     plt.show()
+
+    return alldates
 
 def age_between_review(full_graph, nreview=0):
     alldates = {
@@ -127,13 +132,11 @@ def age_between_review(full_graph, nreview=0):
         """
         y = sorted(x)
         if rank == 0:
-            return [ (y[rank] - y[rank-1]).days for rank in range(1,len(y)) ]
+            return [(y[r] - y[r-1]).days for r in range(1, len(y)) ]
         else:
             return [(y[rank] - y[rank-1]).days]
     
     jumpednodes = 0
-    def save_to_csv(X,Y):
-        np
 
     def get_delta(egdeId, created_dt):
         """return time delta"""
@@ -187,9 +190,9 @@ def age_between_review(full_graph, nreview=0):
         normalize(dist)
         X, Y = dist_from_counter(dist)
         array_age_dist = np.asarray([X,Y])
-        name = node_type+"_age_between_"+str(nreview)
-        np.savetxt('computed/'+name+".csv",array_age_dist,delimiter=",")
-        plt.ylim([0,max(Y)+0.01])
+        name = node_type + "_age_between_" + str(nreview)
+        np.savetxt('computed/' + name + ".csv", array_age_dist, delimiter=",")
+        plt.ylim([0, max(Y) + 0.01])
         plt.yscale('log')
         plt.plot(X, Y, label=node_type)
 
