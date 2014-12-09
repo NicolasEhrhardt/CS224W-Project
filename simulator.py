@@ -119,11 +119,13 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
             linked_nodeId = get_PA(graph, cst.ATTR_NODE_USER_TYPE)
             add_edge(linked_nodeId, new_nodeId, date_start.strftime("%Y-%m-%d")) # TODO: step to change 
 
+        print "Create links for wake up nodes"
         # Step 5. For wake up nodes, create link using random-random-random walk
         for nodeId, wakeuptime in nodewakeup.iteritems():
             if wakeuptime < day:
                 linked_nodeId = get_random(graph, nodeId, 3) # 3 random!
 
+        print "Die nodes."
         # Step 6. Remove nodes whose lifetime has expired
         for nodeId, litime in nodelifetime.iteritems():
             if lifetime < day:
