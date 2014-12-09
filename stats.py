@@ -132,7 +132,7 @@ def age_between_review(full_graph, nreview=0):
         """
         y = sorted(x)
         if rank == 0:
-            return [(y[r] - y[r-1]).days for r in range(1, len(y)) ]
+            return [(y[r] - y[r-1]).days for r in range(2, len(y)) ]
         else:
             return [(y[rank] - y[rank-1]).days]
     

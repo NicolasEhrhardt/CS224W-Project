@@ -20,7 +20,7 @@ def nodesarrival(day):
 
     beta = 1.
     mu = 2.319
-    sigma = 4.9e-1
+    sigma = 0.4085
     alpha = 0.87
 
     # total number of new nodes
