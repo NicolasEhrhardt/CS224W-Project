@@ -182,6 +182,11 @@ def copy_graph(graph):
     
     return new_graph
 
+def save_graph(graph, name):
+    FOut = snap.TFOut(name)
+    graph.Save(FOut)
+    FOut.Flush()
+
 # ~ Ignore Below ~
 
 def failing_keep_edge_type(graph, attr='date', value=lambda x: x < '2010-01-01' ):

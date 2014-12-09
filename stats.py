@@ -5,6 +5,7 @@ import constants as cst
 import numpy as np
 import snap
 from datetime import datetime
+from math import exp
 
 def degree_dist(graph):
     degdist = {
@@ -18,6 +19,9 @@ def degree_dist(graph):
         degdist[node_type].update([n.GetDeg()])
 
     for node_type, d in degdist.iteritems():
+        normalize(d)
+        alpha = alphaccdfreg(d)
+        print node_type, alpha
         plt.plot(d.keys(), d.values())
 
 
@@ -322,13 +326,22 @@ def link_degree(full_graph, max_year=2014):
     normalize(dist[cst.ATTR_NODE_BUSINESS_TYPE])
     normalize(dist[cst.ATTR_NODE_USER_TYPE])
 
+    for ntype in dist:
+        currentdist = dist[ntype]
+        alpha = alphaccdfreg(currentdist)
+        print ntype, alpha
+        thdist = dict((x, exp(- alpha * x)) for x in currentdist.keys())
+        normalize(thdist)
+        X, Y = dist_from_counter(thdist)
+        #plt.plot(X, Y, label=ntype + ' Theorical')
+
     Xb, Yb = dist_from_counter(dist[cst.ATTR_NODE_BUSINESS_TYPE])
     Xu, Yu = dist_from_counter(dist[cst.ATTR_NODE_USER_TYPE])
     plt.plot(Xu, Yu, label='User')
     plt.plot(Xb, Yb, label='Business')
-    #plt.xscale('log')
+    plt.xscale('log')
     plt.xlabel('Node degre')
-    #plt.yscale('log')
+    plt.yscale('log')
     plt.ylabel('Ratio of links created this month')
     plt.legend()
     plt.show()

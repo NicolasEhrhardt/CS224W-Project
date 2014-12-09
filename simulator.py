@@ -1,4 +1,4 @@
-from graphutils import get_empty_graph, add_nodes_and_edges
+from graphutils import get_empty_graph, add_nodes_and_edges, save_graph
 from random import choice
 import constants as cst
 import numpy as np
@@ -74,10 +74,11 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
         else:
             nb_bizs += 1
 
-    def add_node(node_type):
+    def add_node(node_type, date):
         # adding node and metadata
         new_nodeId = graph.AddNode()
         graph.AddStrAttrDatN(new_nodeId, node_type, cst.ATTR_NODE_TYPE)
+        graph.AddStrAttrDatN(new_nodeId, date, cst.ATTR_NODE_CREATED_DATE)
 
         if node_type == cst.ATTR_NODE_USER_TYPE:
             # set lifetime and wake-up time
@@ -109,15 +110,17 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
         
         print "Adding users"
         for _ in range(delta_users):
-            new_nodeId = add_node(cst.ATTR_NODE_USER_TYPE)
+            datestr = date_start.strftime("%Y-%m-%d")
+            new_nodeId = add_node(cst.ATTR_NODE_USER_TYPE, datestr)
             linked_nodeId = get_PA(graph, cst.ATTR_NODE_BUSINESS_TYPE)
-            add_edge(new_nodeId, linked_nodeId, date_start.strftime("%Y-%m-%d")) # TODO: step to change 
+            add_edge(new_nodeId, linked_nodeId, datestr) # TODO: step to change 
 
         print "Adding businesses"
         for _ in range(delta_bizs):
-            new_nodeId = add_node(cst.ATTR_NODE_BUSINESS_TYPE)
+            datestr = date_start.strftime("%Y-%m-%d")
+            new_nodeId = add_node(cst.ATTR_NODE_BUSINESS_TYPE, datestr)
             linked_nodeId = get_PA(graph, cst.ATTR_NODE_USER_TYPE)
-            add_edge(linked_nodeId, new_nodeId, date_start.strftime("%Y-%m-%d")) # TODO: step to change 
+            add_edge(linked_nodeId, new_nodeId, datestr) # TODO: step to change 
 
         print "Create links for wake up nodes"
         # Step 5. For wake up nodes, create link using random-random-random walk
@@ -133,7 +136,7 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
 
         nb_users += delta_users
         nb_bizs += delta_bizs
-
+    
     return graph
 
 def get_PA(graph, node_type):
