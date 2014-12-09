@@ -74,7 +74,7 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
         else:
             nb_bizs += 1
 
-    def add_node(node_type, date):
+    def add_node(node_type, date, day):
         # adding node and metadata
         new_nodeId = graph.AddNode()
         graph.AddStrAttrDatN(new_nodeId, node_type, cst.ATTR_NODE_TYPE)
@@ -82,8 +82,8 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
 
         if node_type == cst.ATTR_NODE_USER_TYPE:
             # set lifetime and wake-up time
-            nodelifetime[new_nodeId] = lifetime()
-            nodewakeup[new_nodeId] = reviewdelta()
+            nodelifetime[new_nodeId] = day + lifetime()
+            nodewakeup[new_nodeId] = day + reviewdelta()
 
         return new_nodeId
 
@@ -111,27 +111,27 @@ def simulate(graph, date_start=get_dt('2011-01-01'), date_end=get_dt('2014-07-01
         print "Adding users"
         for _ in range(delta_users):
             datestr = date_start.strftime("%Y-%m-%d")
-            new_nodeId = add_node(cst.ATTR_NODE_USER_TYPE, datestr)
+            new_nodeId = add_node(cst.ATTR_NODE_USER_TYPE, datestr, day)
             linked_nodeId = get_PA(graph, cst.ATTR_NODE_BUSINESS_TYPE)
             add_edge(new_nodeId, linked_nodeId, datestr) # TODO: step to change 
 
         print "Adding businesses"
         for _ in range(delta_bizs):
             datestr = date_start.strftime("%Y-%m-%d")
-            new_nodeId = add_node(cst.ATTR_NODE_BUSINESS_TYPE, datestr)
+            new_nodeId = add_node(cst.ATTR_NODE_BUSINESS_TYPE, datestr, day)
             linked_nodeId = get_PA(graph, cst.ATTR_NODE_USER_TYPE)
             add_edge(linked_nodeId, new_nodeId, datestr) # TODO: step to change 
 
         print "Create links for wake up nodes"
         # Step 5. For wake up nodes, create link using random-random-random walk
         for nodeId, wakeuptime in nodewakeup.iteritems():
-            if wakeuptime < day:
+            if int(wakeuptime) == day:
                 linked_nodeId = get_random(graph, nodeId, 3) # 3 random!
 
         print "Die nodes."
         # Step 6. Remove nodes whose lifetime has expired
         for nodeId, litime in nodelifetime.iteritems():
-            if lifetime < day:
+            if int(litime) == day:
                 del nodewakeup[nodeId]
 
         nb_users += delta_users
