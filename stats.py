@@ -5,7 +5,7 @@ import constants as cst
 import numpy as np
 import snap
 from datetime import datetime
-from math import exp
+from math import exp, log
 from itertools import cycle
 lines = ["-","--","-.",":"]
 linecycler = cycle(lines)
@@ -40,7 +40,7 @@ def degree_dist(graph, display=True):
         plt.ylabel('log(count)')
         plt.show()
 
-    return degdist, alpha
+    return degdist, alphas
 
 def lifetime(full_graph):
     alldates = {
@@ -110,8 +110,8 @@ def lifetime(full_graph):
     for node_type, dist in alldates.iteritems():
         normalize(dist)
         X, Y = dist_from_counter(dist)
-        distalpha = dict((x, dist[x]) for x in X[1:500])
-        normalize(distalpha)
+        distalpha = dict((x / float(X[1]), dist[x]) for x in X[1:500])
+        #normalize(distalpha)
         alpha = alphaccdfreg(distalpha)
         Xalpha = X[1::]
         Yalpha = [x**(-alpha) for x in Xalpha]
@@ -125,7 +125,7 @@ def lifetime(full_graph):
 
     plt.legend()
     plt.xlabel('Lifetime')
-    plt.xscale('log')
+    #plt.xscale('log')
     plt.ylabel('Frequency')
     plt.yscale('log')
     plt.show()
@@ -609,3 +609,32 @@ def edge_counts(graphs, names, begin=50):
     plt.legend(loc=4)
     plt.show()
 
+def plot_rho(graphs, names, min_year=2010, max_year=2014):
+    for graph, name in zip(graphs, names):
+        rho = []
+        for users, busin, graph in generate_all_graphs(graph, min_year=min_year, max_year=max_year):
+            rho.append(log(graph.GetEdges()) / log(graph.GetNodes()))
+
+        plt.plot(rho, label='Rho (%s)' % name, linestyle=next(linecycler))
+    plt.xlabel('Elapsed months')
+    plt.ylabel('Densification exponent')
+    plt.legend(loc=4)
+    plt.show()
+
+def plot_alphas(graphs, names, min_year=2010, max_year=2014):
+    for graph, name in zip(graphs, names):
+        alphas = []
+        for users, busin, graph in generate_all_graphs(graph, min_year=min_year, max_year=max_year):
+            _, vals = degree_dist(graph, display=False)
+            alphas.append(vals.values())
+
+        print alphas
+        alphau, alphab = zip(*alphas)
+
+        plt.plot(alphau, label='Alpha user (%s)' % name, linestyle=next(linecycler))
+        plt.plot(alphab, label='Alpha business (%s)' % name, linestyle=next(linecycler))
+
+    plt.xlabel('Elapsed months')
+    plt.ylabel('Alpha')
+    plt.legend(loc=2)
+    plt.show()
