@@ -6,12 +6,17 @@ import numpy as np
 import snap
 from datetime import datetime
 from math import exp
+from itertools import cycle
+lines = ["-","--","-.",":"]
+linecycler = cycle(lines)
 
-def degree_dist(graph):
+def degree_dist(graph, display=True):
     degdist = {
         'user': Counter(),
         'business': Counter()
     }
+    
+    alphas = dict()
 
     for n in graph.Nodes():
         node_id = n.GetId()
@@ -21,18 +26,21 @@ def degree_dist(graph):
     for node_type, d in degdist.iteritems():
         normalize(d)
         alpha = alphaccdfreg(d)
+        alphas[node_type] = alpha
         print node_type, alpha
-        plt.plot(d.keys(), d.values())
 
+        if display:
+            plt.plot(d.keys(), d.values())
 
-    plt.legend(['User reviews', 'Business reviews'])
-    plt.xscale('log')
-    plt.xlabel('log(degree)')
-    plt.yscale('log')
-    plt.ylabel('log(count)')
-    plt.show()
+    if display:
+        plt.legend(['User reviews', 'Business reviews'])
+        plt.xscale('log')
+        plt.xlabel('log(degree)')
+        plt.yscale('log')
+        plt.ylabel('log(count)')
+        plt.show()
 
-    return degdist
+    return degdist, alpha
 
 def lifetime(full_graph):
     alldates = {
@@ -94,7 +102,7 @@ def lifetime(full_graph):
 
             nodereviews.append(review_dt)
 
-        if nodereviews and len(nodereviews) > 1:
+        if nodereviews and len(nodereviews) > 2:
             alldates[node_type].update([get_lifetime(nodereviews)])
 
     print jumpednodes
@@ -102,10 +110,18 @@ def lifetime(full_graph):
     for node_type, dist in alldates.iteritems():
         normalize(dist)
         X, Y = dist_from_counter(dist)
+        distalpha = dict((x, dist[x]) for x in X[1:500])
+        normalize(distalpha)
+        alpha = alphaccdfreg(distalpha)
+        Xalpha = X[1::]
+        Yalpha = [x**(-alpha) for x in Xalpha]
+
+        print node_type, alpha
         array_dist = np.asarray([X,Y])
         name = node_type + "_lifetime"
         np.savetxt('computed/' + name + ".csv", array_dist, delimiter=",")
         plt.plot(X, Y, label=node_type)
+        plt.plot(Xalpha, Yalpha, label=node_type + " estimate")
 
     plt.legend()
     plt.xlabel('Lifetime')
@@ -209,6 +225,8 @@ def age_between_review(full_graph, nreview=0):
     plt.savefig('analysis/'+name+'.png')
     plt.show()
 
+    return alldates
+
 def link_creation_by_age(graph,max_year=2014):
     """ Computes the probability of an edge linking to a node of a given age (in months) """
     links_by_age = {    
@@ -286,8 +304,12 @@ def alphaccdfreg(ct):
 
     if not ct:
         return 0
-    ccdfexp = np.array(ccdf(ct.values()))
-    bins = np.array(ct.keys())
+
+    keys = ct.keys()
+    vals = ct.values()
+
+    ccdfexp = np.array(ccdf(vals))
+    bins = np.array(keys)
     goodidx = np.where(bins > 0)
 
     lccdf = np.log(ccdfexp[goodidx])
@@ -531,34 +553,59 @@ def diam_by_time(full_graph, min_year=2005, max_year=2014):
     plt.ylabel('Diameter')
     plt.show()
 
-def raw_stats(graph):
-    reviewcounts = Counter()
-    usercounts = Counter()
-    businesscounts = Counter()
+def node_counts(graphs, names, begin=50, save=True):
+    for graph, name in zip(graphs, names):
+        usercounts = Counter()
+        businesscounts = Counter()
 
-    for edge in graph.Edges():
-        year = graph.GetStrAttrDatE(edge.GetId(), 'date')[0:4]
-        reviewcounts.update([year])
+        t = True
+        for node in graph.Nodes():
+            year = graph.GetStrAttrDatN(node.GetId(), 'date')[0:7]
+            tipe = graph.GetStrAttrDatN(node.GetId(), 'type')
+            if tipe == 'user':
+                usercounts.update([year])
+            else:
+                if year == '' and t:
+                    print node.GetId()
+                    t ^= True
 
-    t = True
-    for node in graph.Nodes():
-        year = graph.GetStrAttrDatN(node.GetId(), 'date')[0:4]
-        tipe = graph.GetStrAttrDatN(node.GetId(), 'type')
-        if tipe == 'user':
-            usercounts.update([year])
-        else:
-            if year == '' and t:
-                print node.GetId()
-                t ^= True
+                businesscounts.update([year])
 
-            businesscounts.update([year])
+        usery, userc = zip(*sorted(usercounts.items()))
+        businessy, businessc = zip(*sorted(businesscounts.items()))
 
-    usery, userc = zip(*sorted(usercounts.items()))
-    businessy, businessc = zip(*sorted(businesscounts.items()))
-    reviewy, reviewc = zip(*sorted(reviewcounts.items()))
+        if save:
+            np.savetxt('computed/user_arrival_%s.csv' % name, userc, delimiter=",")
+            np.savetxt('computed/biz_arrival_%s.csv' % name, businessc, delimiter=",")
 
-    plt.plot(usery, userc, label='User counts')
-    plt.plot(businessy, businessc, label='Business counts')
-    plt.plot(reviewy, reviewc, label='Review counts')
-    plt.legend()
+        usery = usery[begin: len(usery) - 1]
+        userc = userc[begin: len(userc) - 1]
+        businessy = businessy[begin: len(businessy) - 1]
+        businessc = businessc[begin: len(businessc) - 1]
+
+        plt.plot(range(len(usery)), userc, linestyle=next(linecycler), label='User counts (%s)' % name)
+        plt.plot(range(len(businessy)), businessc, linestyle=next(linecycler), label='Business counts (%s)' % name)
+
+    plt.xlabel('Months elapsed')
+    plt.ylabel('Nodes created per month')
+    plt.legend(loc=2)
     plt.show()
+
+def edge_counts(graphs, names, begin=50):
+    for graph, name in zip(graphs, names):
+        reviewcounts = Counter()
+        for edge in graph.Edges():
+            year = graph.GetStrAttrDatE(edge.GetId(), 'date')[0:7]
+            reviewcounts.update([year])
+
+        reviewy, reviewc = zip(*sorted(reviewcounts.items()))
+        reviewy = reviewy[begin: len(reviewy) - 1]
+        reviewc = reviewc[begin: len(reviewc) - 1]
+        plt.plot(range(len(reviewy)), reviewc, linestyle=next(linecycler), label='Review counts (%s)' % name)
+
+    plt.yscale('log')
+    plt.xlabel('Months elapsed')
+    plt.ylabel('Edges created per month')
+    plt.legend(loc=4)
+    plt.show()
+
